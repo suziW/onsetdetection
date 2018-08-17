@@ -14,7 +14,7 @@ window_size = 60       # ms
 
 class DataGen:
     def __init__(self, dirpath, batch_size=128, split=1000):
-        print('>>>>>>>>>> getting data from dirpath: ', dirpath)       
+        print('>>>>>>>>>>>>>>>>>> getting data from dirpath: ', dirpath)       
         self.__framepms = int(sr//1000)
         self.__window_size = window_size*self.__framepms
         self._batch_size = batch_size
@@ -26,18 +26,18 @@ class DataGen:
         self.__y_inputs = np.array(0)
         self.__readmm()
         
-        # self.shuffle_inputs()
+        self.shuffle_inputs()
         self.__split = -split
         self.__x_train = self.__x_inputs[:self.__split]
         self.__y_train = self.__y_inputs[:self.__split]
         self.__x_test = self.__x_inputs[self.__split:]
         self.__y_test = self.__y_inputs[self.__split:]
-        # self.combat_imbalance()
+        self.combat_imbalance()
         self.i = 0
     def combat_imbalance(self):
         print('>>>>>>>>>>>>>>>>>> in combat......')
         train_len = self.__y_train.shape[0]
-        train_ones = sum(self.__y_train)
+        train_ones = np.sum(self.__y_train)
         index = list(filter(lambda i:self.__y_train[i]==1, (i for i in range(train_len))))
         index_append = []
         cnt = math.floor(train_len/train_ones) - 2
@@ -47,7 +47,7 @@ class DataGen:
         self.__y_train = self.__y_train[index_append]
         self.__x_train = self.__x_train[index_append]
         self.shuffle_train()
-        print('>>>>>>>>>>>>>>>>> combat info :', train_len, train_ones, len(index_append), cnt)
+        print('>>>>>>>>>>>>>>>>>> combat info: trainlen trianones indexlen cnt', train_len, train_ones, len(index_append), cnt)
 
 
     def shuffle_inputs(self):
@@ -63,9 +63,9 @@ class DataGen:
     def get_test_data(self):
         return self.__x_test, self.__y_test.reshape(-1, 1)
     def getinfo_train(self):
-        return self.__x_train.shape, self.__y_train.shape, sum(self.__y_train)
+        return self.__x_train.shape, self.__y_train.shape, np.sum(self.__y_train)
     def getinfo_test(self):
-        return self.__x_test.shape, self.__y_test.shape, sum(self.__y_test)
+        return self.__x_test.shape, self.__y_test.shape, np.sum(self.__y_test)
     def train_steps(self):
         return math.ceil(self.__x_train.shape[0]/self._batch_size)
     def test_steps(self):
@@ -102,7 +102,7 @@ class DataGen:
         self.__x_inputs = mmx.reshape(-1, self.__window_size)
         mmy = np.memmap(self._diry, mode='r')
         self.__y_inputs = mmy
-        print('inputs shape:', self.__x_inputs.shape, self.__y_inputs.shape) 
+        # print('inputs shape:', self.__x_inputs.shape, self.__y_inputs.shape) 
         assert(self.__x_inputs.shape[0]==self.__y_inputs.shape[0])
         del mmx
         del mmy

@@ -11,7 +11,7 @@ import librosa.display
 import math
 
 sr = 22050
-step = 0.33        # times of window_size
+step = 1/3        # times of window_size
 window_size = 60       # ms
 min_midi = 21
 max_midi = 108
@@ -73,11 +73,11 @@ class Preprocess:
             print('>>>>>>>>>>> mid_org:', file, mid_org.shape)
             mid = np.zeros(mid_org.shape)
             mid[mid_org > 0] = 1
-            for i, j in enumerate(np.sum(mid, axis=1)):
-                if j>0.1:
-                    mid_org=mid_org[i:]
-                    mid = mid[i:]
-                    break
+            # for i, j in enumerate(np.sum(mid, axis=1)):
+            #     if j>0.1:
+            #         mid_org=mid_org[i:]
+            #         mid = mid[i:]
+            #         break
             print('>>>>>>>>>>> mid:', file, mid.shape)
             for i in np.arange(0, mid.shape[0]-self.__window_size+1, self.__step):
                 onoff_detected = 0
@@ -116,7 +116,7 @@ class Preprocess:
     def get_param(self): 
         return {'input_num': self.__input_num, 'window_size': self.__window_size, 
                 'step': self.__step, 'frame/ms': self.__framepms, 'x_input': self.__x_input.shape,
-                'y_input': self.__y_input.shape, 'y_groundtruth': self.__y_groundtruth} 
+                'y_input': self.__y_input.shape, 'y_groundtruth': self.__y_groundtruth.shape} 
 
 def plot(dir, begin, end):  # x_input': (27256, 1320), 'y_input': (27256,)
     mmy_groundtruth = np.memmap(dir + 'y_groundtruth.dat', mode='r')
@@ -129,20 +129,19 @@ def plot(dir, begin, end):  # x_input': (27256, 1320), 'y_input': (27256,)
 
     print('shapes: ', y_groundtruth.shape, y_input.shape, x_input.shape)
     print('onsets: ', sum(mm_y_input))
-    plt.figure()
-    plt.pcolor(y_groundtruth.T[:, begin:end]+y_input[:, begin:end]*10)
-    # plt.colorbar() 
-    # for i in range(27256):
-    #     if mm_y_input[i] == 1:
-    #         print(i)
-    #         plt.figure()
-    #         plt.plot(x_input[i])
-    plt.show()
+    for i in range(27256):
+        if mm_y_input[i] == 1:
+            print(i)
+            plt.figure()
+            plt.plot(x_input[i])
+            plt.figure()
+            plt.pcolor(y_groundtruth.T[:, begin:end]+y_input[:, begin:end]*10)
+            plt.show()
 
 if __name__=='__main__':
-    input_dir = 'data/train/'
-    output_dir = 'data/train/'
+    input_dir = 'data/maps/'
+    output_dir = 'data/maps/'
 
     # pre = Preprocess(input_dir, output_dir)
     # print(pre.get_param())
-    plot(output_dir, 0, 500)
+    plot(output_dir, 17000, 5000000)

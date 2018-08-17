@@ -6,17 +6,19 @@ import load
 import numpy as np 
 import time
 from sklearn import preprocessing
+from model import Model_advance, Model_base
+import os 
 
 window_size = 1320
 dirpath = 'model/'
 learning_rate = 0.001
 epochs = 44
-batch_size = 32
+batch_size = 256
 dropout = 0.75
 print_step = 500
-early_stop = {'best_loss': 100.0, 'tolerance':5, 'not_improve_cnt':0}
+early_stop = {'best_loss': 100.0, 'tolerance':3, 'not_improve_cnt':0}
 
-data = load.DataGen(dirpath, batch_size=batch_size, split=2000)
+data = load.DataGen(dirpath, batch_size=batch_size, split=3000)
 step_per_epoch = data.train_steps()
 num_steps = epochs*step_per_epoch
 x_train_shape, y_train_shape, positive_train = data.getinfo_train()
@@ -24,62 +26,24 @@ x_test_shape, y_test_shape, positive_test = data.getinfo_test()
 print('>>>>>>>>>>>>>training data: ', data.getinfo_train())
 print('>>>>>>>>>>>>>testing data: ', data.getinfo_test())
 print('>>>>>>>>>>>>>num_steps: ', num_steps)
+########################################################################################################################################################################################  
+########################################################################################################################################################################################  
 
-X = tf.placeholder(tf.float32, [None, x_train_shape[1]], name='x_input')
-Y = tf.placeholder(tf.float32, [None, 1], name='y_input')
-keep_prob = tf.placeholder(tf.float32, name='keep_prob') # dropout (keep probability)
-
-def conv1d(x, w, b, stride=1):
-    x = tf.nn.conv1d(x, w, stride, 'SAME')
-    x = tf.nn.bias_add(x, b)
-    return tf.nn.relu(x)
-    
-def conv_net(x, weights, biases, dropout):
-    x = tf.reshape(x, shape=[-1, window_size, 1])
-    x_window = tf.multiply(x, weights['ww'])
-    conv1 = conv1d(x_window, weights['wc1'], biases['bc1'])
-    # conv2 = conv1d(conv1, weights['wc2'], biases['bc2'])
-
-    fc1 = tf.reshape(conv1, [-1, weights['wd1'].get_shape()[0]])
-    fc1 = tf.add(tf.matmul(fc1, weights['wd1']), biases['bd1'])
-    fc1 = tf.nn.relu(fc1)
-    fc1 = tf.nn.dropout(fc1, dropout)
-
-    # fc2 = tf.add(tf.matmul(fc1, weights['wd2']), biases['bd2'])
-    # fc2 = tf.nn.relu(fc2)
-    # fc2 = tf.nn.dropout(fc2, dropout)
-
-    out = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
-    
-    return out
-
-weights = {
-    'ww': tf.Variable(tf.ones([window_size, 1], dtype=tf.float32), name='ww'),
-    'wc1': tf.Variable(tf.truncated_normal([110, 1, 88], dtype=tf.float32)/10, name='wc1'),
-    'wc2': tf.Variable(tf.truncated_normal([110, 352, 88], dtype=tf.float32)/10, name='wc2'),
-    'wd1': tf.Variable(tf.truncated_normal([window_size*88, 88], dtype=tf.float32)/10, name='wd1'),
-    'wd2': tf.Variable(tf.truncated_normal([352, 88], dtype=tf.float32)/10, name='wd2'),
-    'out': tf.Variable(tf.truncated_normal([88, 1], dtype=tf.float32)/10, name='wout')
-}
-
-biases = {
-    'bc1': tf.Variable(tf.truncated_normal([88], dtype=tf.float32)/10, name='bc1'),
-    'bc2': tf.Variable(tf.truncated_normal([88], dtype=tf.float32)/10, name='bc2'),
-    'bd1': tf.Variable(tf.truncated_normal([88], dtype=tf.float32)/10, name='bd1'),
-    'bd2': tf.Variable(tf.truncated_normal([88], dtype=tf.float32)/10, name='bd2'),
-    'out': tf.Variable(tf.truncated_normal([1], dtype=tf.float32)/10, name='bout') 
-}
-
-with tf.name_scope('model_scope'):
-    logits = conv_net(X, weights, biases, keep_prob)
-
+model = Model_advance(window_size)
+logits = model.merge_net()
 prediction_op = tf.nn.sigmoid(logits) 
 
-with tf.name_scope('loss_scope'):
-    loss_op = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=Y))
-
-optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
-train_op = optimizer.minimize(loss_op)
+with tf.name_scope('optimize_scope'):
+    loss_op = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=model.Y))
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+    train_vars1 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='.*dense_scope')
+    train_vars2 = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='.*dense_scope|conv_weights_scope')
+    # print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+    # print(train_vars1)
+    # print('^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^')
+    train_op1 = optimizer.minimize(loss_op, var_list=train_vars1)
+    train_op2 = optimizer.minimize(loss_op, var_list=train_vars2)
+    train_op3 = optimizer.minimize(loss_op)
 
 init = tf.global_variables_initializer()
 saver = tf.train.Saver(max_to_keep=3)
@@ -94,38 +58,51 @@ test_x, test_y = data.get_test_data()
 # test_x = preprocessing.MinMaxScaler().fit_transform(test_x.T).T
 test_x = preprocessing.StandardScaler().fit_transform(test_x.T).T
 # test_x = test_x * 10
-with tf.Session() as sess:
-    sess.run(init)
+########################################################################################################################################################################################  
+########################################################################################################################################################################################  
+def train_method(train_op, num, learning_rate=learning_rate):
+    sess = tf.Session()
+    if os.path.exists('model/savers'):
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ restore model')
+        saver.restore(sess, tf.train.latest_checkpoint('model/savers/'))
+    else:
+        sess.run(init)
+        print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ init model')
     summary_writer = tf.summary.FileWriter('model/logs', sess.graph)
     sess.graph.finalize()
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ over preparing for train')
     for step in range(1, num_steps+1):
         batch_x, batch_y = next(data.train_gen())
         # batch_x = batch_x * 10
         batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T 
         # Run optimization op (backprop)
-        sess.run(train_op, feed_dict={X: batch_x, Y: batch_y, keep_prob: dropout})
-
+        sess.run(train_op, feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: dropout})
         if step % step_per_epoch == 0:
             test_loss = sess.run(loss_op,
-                            feed_dict={X: test_x, Y: test_y, keep_prob: 1.0})
+                            feed_dict={model.X: test_x, model.Y: test_y, model.keep_prob: 1.0})
+            print('###########################################')
+            print('epoch ', step/step_per_epoch)
+            print('best loss: ', early_stop['best_loss'])
+            print('test loss: ', test_loss)
             if test_loss <= early_stop['best_loss']:
-                print('{}!!!!!!!!!! test loss improved from {} to {}'.format(step/step_per_epoch, early_stop['best_loss'], test_loss))
+                print('test loss improved ')
                 early_stop['not_improve_cnt'] = 0
                 early_stop['best_loss'] = test_loss
-                saver.save(sess, 'model/savers/{}'.format(step/step_per_epoch), global_step=step)
+                saver.save(sess, 'model/savers/{}-{}'.format(num, step/step_per_epoch), global_step=step)
                 print('model_saved')
             elif early_stop['not_improve_cnt'] == early_stop['tolerance']:
-                print('{}!!!!!!!!!! early stop! test loss cant improve from {}'.format(step/step_per_epoch, early_stop['best_loss']))
+                print('early stop! test loss cant improve for many epochs')
+                early_stop['not_improve_cnt'] = 0
                 break
             else:
                 early_stop['not_improve_cnt'] += 1
-                print('{}!!!!!!!!!! test loss not improving! {} for {}'.format(step/step_per_epoch, early_stop['best_loss'], early_stop['not_improve_cnt']))
+                print('test loss not improving for {}'.format(early_stop['not_improve_cnt']))
             learning_rate = learning_rate*0.9
-
+            print('###########################################')
         if step % print_step == 0 or step == 1:
             # Calculate batch loss and accuracy
             train_loss, pred, summary = sess.run([loss_op, prediction_op, merge_summary_op], 
-                                        feed_dict={X: batch_x, Y: batch_y, keep_prob: 1.0})
+                                        feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: 1.0})
 
             pred = np.round(pred).astype(np.int32)       
             time_dict['det_time'] = time.time() - time_dict['last_time']
@@ -142,8 +119,14 @@ with tf.Session() as sess:
             # print('-----------------  max :', np.max(batch_x))
             print('===========================================================================================')
             summary_writer.add_summary(summary, step)
-              
-    print("Optimization Finished!")
+        # break
+    sess.close()
+
+
+train_method(train_op1, num=1)
+train_method(train_op2, num=2)
+train_method(train_op3, num=3)              
+print("Optimization Finished!")
 
     # Calculate accuracy for 256 MNIST test images
     # print("Testing Accuracy:", \

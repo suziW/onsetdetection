@@ -11,7 +11,7 @@ from sklearn import preprocessing
 
 def get_predict(input_dir, model_dir, meta_name):
     data = load.DataGen(input_dir, batch_size=32, split=1)
-    print('>>>>>>>>>>>>>>>>>>>', data.getinfo_train())
+    print('>>>>>>>>>>>>>>>>>> data info:', data.getinfo_train())
     with tf.Session() as sess:
         saver = tf.train.import_meta_graph(os.path.join(model_dir, 'savers/', meta_name))
         saver.restore(sess, tf.train.latest_checkpoint(os.path.join(model_dir, 'savers/')))
@@ -21,7 +21,7 @@ def get_predict(input_dir, model_dir, meta_name):
         Y = graph.get_tensor_by_name('y_input:0')
         keep_prob = graph.get_operation_by_name('keep_prob').outputs[0]
         prediction = tf.get_collection('pred_collection')[0]
-        ww = graph.get_tensor_by_name('ww:0')
+        # ww = graph.get_tensor_by_name('ww:0')
 
         y_prediction = []
         y_groundtruth = []
@@ -36,8 +36,8 @@ def get_predict(input_dir, model_dir, meta_name):
             # break
         y_prediction = np.concatenate(y_prediction)
         y_groundtruth = np.concatenate(y_groundtruth)
-        print('>>>>>>>>>>>>groundtruth: ', y_groundtruth .shape)
-        print('>>>>>>>>>>>>>>>>>>>pred: ', y_prediction.shape)
+        # print('>>>>>>>>>>>>>>>>>> groundtruth: ', y_groundtruth .shape)
+        # print('>>>>>>>>>>>>>>>>>> pred: ', y_prediction.shape)
         assert(y_groundtruth.shape==y_prediction.shape)
 
         # ww_data = sess.run(ww)
@@ -52,7 +52,7 @@ def get_predict(input_dir, model_dir, meta_name):
         # # print(axe)
         # plt.show()
 
-        print('>>>>>>>>>>>>>>>>>>>saving: ', model_dir)
+        print('>>>>>>>>>>>>>>>>>> saving: ', model_dir)
         mm1 = np.memmap(filename=os.path.join(model_dir, 'y_onset.dat'), mode='w+', shape=y_groundtruth .shape[0])
         mm1[:] = y_groundtruth [:, 0]
         mm2 = np.memmap(filename=os.path.join(model_dir, 'y_pred.dat'), mode='w+', shape=y_prediction.shape[0], dtype=float)
@@ -88,7 +88,7 @@ class Eval:
         del mmy_onset
         del mmy_pred
         del mmy_groundtruth
-        print('>>>>>>>>>>>> shapes: ', self.y_onset.shape, self.y_pred.shape, self.y_groundtruth.shape,
+        print('>>>>>>>>>>>>>>>>>> shapes: ', self.y_onset.shape, self.y_pred.shape, self.y_groundtruth.shape,
                                          self.y_onset_pad.shape, self.y_pred_pad.shape)
         assert(self.y_onset.shape == self.y_pred.shape)
 
@@ -151,23 +151,23 @@ class Eval:
     def frameF(self):
         precision = self.frameP()
         recall = self.frameR()
-        print('-------------------f measure is: ', precision*recall*2/(precision+recall))
+        print('-----------------f measure is: ', precision*recall*2/(precision+recall))
     def precision(self):
         true_cnt = 0
         for i in range(len(self.y_onset)):
             if self.y_pred[i] == self.y_onset[i]:
                 true_cnt += 1
-        print('---------------------total precision: ', true_cnt/len(self.y_onset))
+        print('-----------------total precision: ', true_cnt/len(self.y_onset))
 
 
 if __name__=='__main__':
-    input_dir = 'data/'
-    model_dir = 'model/0.0847-5epoch/'
-    meta_name = '5.0-110565.meta'
+    input_dir = 'data/maps/'
+    model_dir = 'model/'
+    meta_name = '2-4.0-6164.meta'
 
     # get_predict(input_dir, model_dir, meta_name)
     evaluation = Eval(model_dir, input_dir, threshhole=0.8)
     evaluation.frameF()
     evaluation.precision()
-    evaluation.plot(0, 500)
+    evaluation.plot(1000, 1500)
     
