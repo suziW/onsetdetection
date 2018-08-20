@@ -26,13 +26,13 @@ class DataGen:
         self.__y_inputs = np.array(0)
         self.__readmm()
         
-        self.shuffle_inputs()
+        # self.shuffle_inputs()
         self.__split = -split
         self.__x_train = self.__x_inputs[:self.__split]
         self.__y_train = self.__y_inputs[:self.__split]
         self.__x_test = self.__x_inputs[self.__split:]
         self.__y_test = self.__y_inputs[self.__split:]
-        self.combat_imbalance()
+        # self.combat_imbalance()
         self.i = 0
     def combat_imbalance(self):
         print('>>>>>>>>>>>>>>>>>> in combat......')

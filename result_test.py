@@ -98,19 +98,26 @@ class Eval:
 
     def plot(self, begin, end): 
         pred_onset = np.array([self.y_onset, self.y_onset, 2*self.y_pred])
-        plt.figure()
+        plt.figure(figsize=(50, 25))
         plt.pcolor(pred_onset[:, begin:end])
         plt.title('pred vs onset')
+        # plt.savefig('model/maps 0.77/pic/{}-{}pred vs onset'.format(begin, end))
         
-        plt.figure()
+        plt.figure(figsize=(50, 25))
         plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_onset_pad[:, begin:end]*10)
         plt.title('groundtruth onset')
+        # plt.savefig('model/maps 0.77/pic/{}-{}truth'.format(begin, end))
 
-        plt.figure()
+        plt.figure(figsize=(50, 25))
         plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_pred_pad[:, begin:end]*10)
         plt.title('groundtruth pred')
+        # plt.savefig('model/maps 0.77/pic/{}-{}pred'.format(begin, end))
 
         plt.show()
+        # plt.close()
+        if end<len(self.y_onset):
+            return True
+        return False
 
     def frameP(self):       # how many predictions are true 
         total = 0
@@ -163,11 +170,15 @@ class Eval:
 if __name__=='__main__':
     input_dir = 'data/maps/'
     model_dir = 'model/'
-    meta_name = '2-4.0-6164.meta'
+    meta_name = '41.39836931228638-1.0-2705.meta'
 
-    # get_predict(input_dir, model_dir, meta_name)
+    get_predict(input_dir, model_dir, meta_name)
     evaluation = Eval(model_dir, input_dir, threshhole=0.8)
     evaluation.frameF()
     evaluation.precision()
-    evaluation.plot(1000, 1500)
+    index = 0
+    while evaluation.plot(index, index+500):
+        index += 500
+        print(index/500)
+        break
     

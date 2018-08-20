@@ -27,7 +27,7 @@ def data2dat():
     x_input = []
     for wavfile in glob.glob(data_dir+'*.wav'):
         print('>>>>>>>>>> wavfile:', wavfile)
-        wav, _ = librosa.load('data/piano/alb_esp4_format0.wav', sr)
+        wav, _ = librosa.load(wavfile, sr)
         print('>>>>>>>>>> wav: ', wavfile, wav.shape)
         for i in np.arange(0, len(wav)-window_size+1, step):
             x_input.append(wav[i:i+window_size])
@@ -101,11 +101,11 @@ class Eval:
         plt.show()
 
 if __name__=='__main__':
-    # data2dat()
+    data2dat()
 
-    # model_dir = 'model/'
-    # meta_name = '2-4.0-6164.meta'
-    # get_predict(model_dir, meta_name)
+    model_dir = 'model/nogood/'
+    meta_name = '2-4.0-6164.meta'
+    get_predict(model_dir, meta_name)
 
     eval = Eval(threshhole=0.8)
-    eval.plot(0, 500)
+    eval.plot(0, 500) 

@@ -70,7 +70,7 @@ class Preprocess:
             # endtime = midobj.get_end_time()
             # print(endtime)
             mid_org = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
-            print('>>>>>>>>>>> mid_org:', file, mid_org.shape)
+            print('>>>>>>>>>> mid_org:', file, mid_org.shape)
             mid = np.zeros(mid_org.shape)
             mid[mid_org > 0] = 1
             # for i, j in enumerate(np.sum(mid, axis=1)):
@@ -116,7 +116,7 @@ class Preprocess:
     def get_param(self): 
         return {'input_num': self.__input_num, 'window_size': self.__window_size, 
                 'step': self.__step, 'frame/ms': self.__framepms, 'x_input': self.__x_input.shape,
-                'y_input': self.__y_input.shape, 'y_groundtruth': self.__y_groundtruth.shape} 
+                'y_input': self.__y_input.shape} 
 
 def plot(dir, begin, end):  # x_input': (27256, 1320), 'y_input': (27256,)
     mmy_groundtruth = np.memmap(dir + 'y_groundtruth.dat', mode='r')
@@ -139,9 +139,9 @@ def plot(dir, begin, end):  # x_input': (27256, 1320), 'y_input': (27256,)
             plt.show()
 
 if __name__=='__main__':
-    input_dir = 'data/maps/'
-    output_dir = 'data/maps/'
+    input_dir = 'data/maps/train/'
+    output_dir = 'data/maps/train/'
 
-    # pre = Preprocess(input_dir, output_dir)
-    # print(pre.get_param())
-    plot(output_dir, 17000, 5000000)
+    pre = Preprocess(input_dir, output_dir)
+    print(pre.get_param())
+    plot(output_dir, 0, 500)
