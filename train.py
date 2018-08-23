@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import tensorflow as tf 
-import load
+from load_db import DataGen
 import numpy as np 
 import time
 from sklearn import preprocessing
@@ -16,16 +16,16 @@ epochs = 44
 batch_size = 256
 dropout = 0.75
 print_step = 500
-early_stop = {'best_loss': 100.0, 'tolerance':6, 'not_improve_cnt':0}
+early_stop = {'best_accuracy': 100.0, 'tolerance':2, 'not_improve_cnt':0}
 
-data = load.DataGen(dirpath, batch_size=batch_size, split=3000)
+data = DataGen(batch_size=batch_size, split=0.999)
 step_per_epoch = data.train_steps()
 num_steps = epochs*step_per_epoch
-x_train_shape, y_train_shape, positive_train = data.getinfo_train()
-x_test_shape, y_test_shape, positive_test = data.getinfo_test()
-print('>>>>>>>>>>>>>>>>>> training data: ', data.getinfo_train())
-print('>>>>>>>>>>>>>>>>>> testing data: ', data.getinfo_test())
-print('>>>>>>>>>>>>>>>>>> num_steps: ', num_steps)
+train_len = data.get_train_len()
+val_len = data.get_val_len()
+print('>>>>>>>>>>>>>>>>>> train len: ', train_len)
+print('>>>>>>>>>>>>>>>>>> val len: ', val_len)
+print('>>>>>>>>>>>>>>>>>> num_steps/step per epoch: {}/{}: '.format(num_steps, step_per_epoch))
 ########################################################################################################################################################################################  
 ########################################################################################################################################################################################  
 
@@ -51,11 +51,11 @@ for var in tf.trainable_variables():
 merge_summary_op = tf.summary.merge_all()
 tf.add_to_collection('pred_collection', prediction_op)
 time_dict = {'start_time': time.time(), 'det_time': 0, 'last_time':time.time()}
-test_x, test_y = data.get_test_data()
-# test_x = preprocessing.MaxAbsScaler().fit_transform(test_x.T).T 
-# test_x = preprocessing.MinMaxScaler().fit_transform(test_x.T).T
-test_x = preprocessing.StandardScaler().fit_transform(test_x.T).T
-# test_x = test_x * 10
+# val_x, val_y = data.get_val_data()
+# val_x = preprocessing.MaxAbsScaler().fit_transform(val_x.T).T 
+# val_x = preprocessing.MinMaxScaler().fit_transform(val_x.T).T
+# val_x = preprocessing.StandardScaler().fit_transform(val_x.T).T
+# val_x = val_x * 10
 ########################################################################################################################################################################################  
 ########################################################################################################################################################################################  
 def train_method(train_op, learning_rate=learning_rate):
@@ -74,28 +74,37 @@ def train_method(train_op, learning_rate=learning_rate):
         # batch_x = batch_x * 10
         batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T 
         sess.run(train_op, feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: dropout})
+
         if step % step_per_epoch == 0:
-            test_loss = sess.run(loss_op,
-                            feed_dict={model.X: test_x, model.Y: test_y, model.keep_prob: 1.0})
+            equal_cnt = 0
+            for _ in range(data.val_steps()):
+                val_x, val_y = next(data.val_gen())
+                val_x = preprocessing.StandardScaler().fit_transform(val_x.T).T 
+                test_pred = sess.run(prediction_op,
+                                feed_dict={model.X: val_x, model.Y: val_y, model.keep_prob: 1.0})
+                test_pred = np.round(test_pred).astype(np.int32)
+                equal_cnt += np.sum(val_y == test_pred)
+            accuracy = equal_cnt/val_len
             print('###########################################')
             print('epoch ', step/step_per_epoch)
-            print('best loss: ', early_stop['best_loss'])
-            print('test loss: ', test_loss)
-            if test_loss <= early_stop['best_loss']:
-                print('test loss improved ')
+            print('best_accuracy: ', early_stop['best_accuracy'])
+            print('test accuracy: ', accuracy)
+            if accuracy >= early_stop['best_accuracy']:
+                print('test accuracy improved ')
                 early_stop['not_improve_cnt'] = 0
-                early_stop['best_loss'] = test_loss
+                early_stop['best_accuracy'] = accuracy
                 saver.save(sess, 'model/savers/{}-{}'.format(time.time()-time_dict['start_time'], step/step_per_epoch), global_step=step)
                 print('model_saved')
             elif early_stop['not_improve_cnt'] == early_stop['tolerance']:
-                print('early stop! test loss cant improve for many epochs')
+                print('early stop! test accuracy cant improve for many epochs')
                 early_stop['not_improve_cnt'] = 0
                 break
             else:
                 early_stop['not_improve_cnt'] += 1
-                print('test loss not improving for {}'.format(early_stop['not_improve_cnt']))
+                print('test accuracy not improving for {}'.format(early_stop['not_improve_cnt']))
             learning_rate = learning_rate*0.9
             print('###########################################')
+
         if step % print_step == 0 or step == 1:
             train_loss, pred, summary = sess.run([loss_op, prediction_op, merge_summary_op], 
                                         feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: 1.0})

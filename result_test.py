@@ -170,7 +170,7 @@ class Eval:
 if __name__=='__main__':
     input_dir = 'data/maps/'
     model_dir = 'model/'
-    meta_name = '41.39836931228638-1.0-2705.meta'
+    meta_name = '11674.783225297928-2.0-43346.meta'
 
     get_predict(input_dir, model_dir, meta_name)
     evaluation = Eval(model_dir, input_dir, threshhole=0.8)
