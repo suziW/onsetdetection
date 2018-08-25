@@ -16,16 +16,12 @@ epochs = 44
 batch_size = 256
 dropout = 0.75
 print_step = 500
-early_stop = {'best_accuracy': 100.0, 'tolerance':2, 'not_improve_cnt':0}
+early_stop = {'best_accuracy': 0.0, 'tolerance':5, 'not_improve_cnt':0}
 
-data = DataGen(batch_size=batch_size, split=0.999)
+data = DataGen(batch_size=batch_size, split=0.99)
 step_per_epoch = data.train_steps()
 num_steps = epochs*step_per_epoch
-train_len = data.get_train_len()
-val_len = data.get_val_len()
-print('>>>>>>>>>>>>>>>>>> train len: ', train_len)
-print('>>>>>>>>>>>>>>>>>> val len: ', val_len)
-print('>>>>>>>>>>>>>>>>>> num_steps/step per epoch: {}/{}: '.format(num_steps, step_per_epoch))
+print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
 ########################################################################################################################################################################################  
 ########################################################################################################################################################################################  
 
@@ -71,20 +67,17 @@ def train_method(train_op, learning_rate=learning_rate):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ over preparing for train')
     for step in range(1, num_steps+1):
         batch_x, batch_y = next(data.train_gen())
-        # batch_x = batch_x * 10
-        batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T 
         sess.run(train_op, feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: dropout})
 
-        if step % step_per_epoch == 0:
+        if step % step_per_epoch == 0:     # one epoch done, evaluate model
             equal_cnt = 0
             for _ in range(data.val_steps()):
                 val_x, val_y = next(data.val_gen())
-                val_x = preprocessing.StandardScaler().fit_transform(val_x.T).T 
                 test_pred = sess.run(prediction_op,
                                 feed_dict={model.X: val_x, model.Y: val_y, model.keep_prob: 1.0})
                 test_pred = np.round(test_pred).astype(np.int32)
                 equal_cnt += np.sum(val_y == test_pred)
-            accuracy = equal_cnt/val_len
+            accuracy = equal_cnt/data.get_val_len()
             print('###########################################')
             print('epoch ', step/step_per_epoch)
             print('best_accuracy: ', early_stop['best_accuracy'])

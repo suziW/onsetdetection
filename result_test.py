@@ -27,7 +27,6 @@ def get_predict(input_dir, model_dir, meta_name):
         y_groundtruth = []
         for i in range(data.train_steps()):
             batch_x , batch_y   = next(data.train_gen())
-            # batch_x = batch_x * 10
             batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T 
             print('predicting.........................................{}/{}.......'.format(i, data.train_steps()), end='\r')
             pred_batch = sess.run(prediction, feed_dict={X: batch_x , Y: batch_y , keep_prob: 1})
@@ -170,10 +169,10 @@ class Eval:
 if __name__=='__main__':
     input_dir = 'data/maps/'
     model_dir = 'model/'
-    meta_name = '11674.783225297928-2.0-43346.meta'
+    meta_name = '422.6449353694916-1.0-21478.meta'
 
     get_predict(input_dir, model_dir, meta_name)
-    evaluation = Eval(model_dir, input_dir, threshhole=0.8)
+    evaluation = Eval(model_dir, input_dir, threshhole=0.5)
     evaluation.frameF()
     evaluation.precision()
     index = 0

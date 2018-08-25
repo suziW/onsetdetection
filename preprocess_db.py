@@ -48,13 +48,14 @@ class Preprocess:
         print('----------- saving......')
         print('----------- lens', len(self.__x_input), len(self.__y_input))
         length = len(self.__y_input)
-        db = pymysql.connect(host="localhost",user="suzi",
+        db = pymysql.connect(host="localhost",user="root",
             password="1234",db="onset_detection",port=3306)
         cur = db.cursor()
-        sql = "insert into train(x_train, y_onset) values(%s, %s)"
+        sql = "insert into maps(x_train, y_onset) values(%s, %s)"
         try:
             cur.executemany(sql, [(self.__x_input[i], self.__y_input[i]) for i in range(length)])
-            # cur.execute(sql.format(self.__x_input[1111], self.__y_input[1111]))
+            # cur.executemany(sql, self.__x_input)
+            # cur.execute(sql, self.__x_input[111])
         except Exception as e:
             db.rollback()
             print('except', e)
@@ -65,14 +66,14 @@ class Preprocess:
         for file in self.__midfiles:
             midobj = pretty_midi.PrettyMIDI(file)     # loadfile
             mid_org = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
-            print('>>>>>>>>>> mid_org:', file, mid_org.shape)
             mid = np.zeros(mid_org.shape)
             mid[mid_org > 0] = 1
+            # print('>>>>>>>>>> mid_org:', file, mid_org.shape)
             # for i, j in enumerate(np.sum(mid, axis=1)):
             #     if j>0.1:
             #         mid_org=mid_org[i:]
             #         mid = mid[i:]
-            #         break
+                    # break
             print('>>>>>>>>>>> mid:', file, mid.shape)
             for i in np.arange(0, mid.shape[0]-self.__window_size+1, self.__step):
                 onoff_detected = 0
@@ -91,9 +92,9 @@ class Preprocess:
             wav, _ = librosa.load(file, sr)
             print('>>>>>>>>>> wav: ', file, wav.shape)
             for i in np.arange(0, len(wav)-self.__window_size+1, self.__step):
-                # a = np.round(wav[i:i+self.__window_size], decimals=4)
-                x_input = str(wav[i:i+self.__window_size].tolist())
+                x_input = wav[i:i+self.__window_size].tobytes()
                 self.__x_input.append(x_input)
+                # break
             self.__x_input = self.__x_input[:self.__align_list[alignIndex]]
             alignIndex += 1
             # break
@@ -157,3 +158,7 @@ if __name__=='__main__':
         del pre
         print('==================================================================================== i = ', i)
     # plot(output_dir, 0, 500)
+    # input_dir = 'data/alb/'
+    # pre = Preprocess(input_dir)
+    # print(pre.get_param())
+    

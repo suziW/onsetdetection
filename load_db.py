@@ -10,6 +10,7 @@ import random
 import mysql
 import time
 import pymysql
+from sklearn import preprocessing
 
 sr = 22050
 step = 0.33        # times of window_size
@@ -18,8 +19,11 @@ window_size = 60       # ms
 class DataGen:
     def __init__(self, batch_size=128, split=0.99):
         print('>>>>>>>>>>>>>>>>>> getting data......')       
+        self.__db = pymysql.connect(host="localhost", user="root", password="1234",
+                    db="onset_detection",port=3306)
+        self.__cur = self.__db.cursor()
         self._batch_size = batch_size
-        self.__zeros, self.__ones = mysql.get_index()   #3106827 = 2800958 + 305869 
+        self.__zeros, self.__ones = mysql.get_index(self.__cur)   #3106827 = 2800958 + 305869 
 
         print('>>>>>>>>>>>>>>>>>> shufflling.....')       
         random.shuffle(self.__zeros)
@@ -37,11 +41,8 @@ class DataGen:
         print('>>>>>>>>>>>>>>>>>> TrainOnesZerosValOnesZeros: ', len(self.__train_ones),len(self.__train_zeros),
                                                              len(self.__val_ones), len(self.__val_zeros))       
         self.combat_imbalance()
-        self.i = 0
-        self.__db = pymysql.connect(host="localhost", user="suzi", password="1234",
-                    db="onset_detection",port=3306)
-        self.__cur = self.__db.cursor()
-
+        self.__gen_index_train = 0
+        self.__gen_index_val = 0
 
     def combat_imbalance(self):
         print('>>>>>>>>>>>>>>>>>> combating......')
@@ -65,27 +66,30 @@ class DataGen:
         return math.ceil(len(self.__val)/self._batch_size)
     def train_gen(self):
         while True:
-            if (self.i + 1) * self._batch_size > len(self.__train):
+            if (self.__gen_index_train + 1) * self._batch_size > len(self.__train):
                 # return rest and then switch files
-                x, y = mysql.get_input_by_frame(self.__train[self.i * self._batch_size:], self.__cur)
-                self.i = 0
+                x, y = mysql.get_input_by_frame(self.__train[self.__gen_index_train * self._batch_size:], self.__cur)
+                self.__gen_index_train = 0
                 random.shuffle(self.__train)
             else:
-                x, y = mysql.get_input_by_frame(self.__train[self.i * self._batch_size:(self.i + 1) * self._batch_size], self.__cur)
-                self.i += 1
+                x, y = mysql.get_input_by_frame(self.__train[self.__gen_index_train * self._batch_size:(self.__gen_index_train + 1) * self._batch_size], self.__cur)
+                self.__gen_index_train += 1
+            x = preprocessing.StandardScaler().fit_transform(x.T).T 
             y = y.reshape(-1, 1)
             yield x, y
 
     def val_gen(self):
         while True:
-            if (self.i + 1) * self._batch_size > len(self.__val):
+            assert(self.__gen_index_val*self._batch_size<len(self.__val))
+            if (self.__gen_index_val + 1) * self._batch_size > len(self.__val):
                 # return rest and then switch files
-                x, y = mysql.get_input_by_frame(self.__val[self.i * self._batch_size:], self.__cur)
-                self.i = 0
+                x, y = mysql.get_input_by_frame(self.__val[self.__gen_index_val * self._batch_size:], self.__cur)
+                self.__gen_index_val = 0
             else:
-                x, y = mysql.get_input_by_frame(self.__val[self.i * self._batch_size:(self.i + 1) * self._batch_size], self.__cur)
-                self.i += 1
+                x, y = mysql.get_input_by_frame(self.__val[self.__gen_index_val * self._batch_size:(self.__gen_index_val + 1) * self._batch_size], self.__cur)
+                self.__gen_index_val += 1
             y = y.reshape(-1, 1)
+            x = preprocessing.StandardScaler().fit_transform(x.T).T 
             yield x, y
     def get_param(self):
         return len(self.__train), len(self.__val), self.train_steps(), self.val_steps()
