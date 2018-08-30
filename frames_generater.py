@@ -25,11 +25,11 @@ class DataGen:
         self._batch_size = batch_size
         self.__zeros, self.__ones = mysql.get_index(self.__cur)   #3106827 = 2800958 + 305869 
 
-        print('>>>>>>>>>>>>>>>>>> shufflling.....')       
+        # print('>>>>>>>>>>>>>>>>>> shufflling.....')       
         random.shuffle(self.__zeros)
         random.shuffle(self.__ones)
 
-        print('>>>>>>>>>>>>>>>>>> spliting.....')       
+        # print('>>>>>>>>>>>>>>>>>> spliting.....')       
         self.__split_ones = math.floor(split*len(self.__ones))
         self.__split_zeros = math.floor(split*len(self.__zeros))
         self.__train_ones = self.__ones[:self.__split_ones]
@@ -54,8 +54,8 @@ class DataGen:
         print('>>>>>>>>>>>>>>>>>> combat trainlen', cnt, len(self.__train))
 
     def get_val_data(self):
-        x, y = mysql.get_input_by_frame(self.__val, self.__cur)
-        return x, y.reshape(-1, 1)
+        frames = self.__val
+        return frames
     def get_train_len(self):
         return len(self.__train)
     def get_val_len(self):
@@ -67,30 +67,23 @@ class DataGen:
     def train_gen(self):
         while True:
             if (self.__gen_index_train + 1) * self._batch_size > len(self.__train):
-                # return rest and then switch files
-                x, y = mysql.get_input_by_frame(self.__train[self.__gen_index_train * self._batch_size:], self.__cur)
+                frames = self.__train[self.__gen_index_train * self._batch_size:]
                 self.__gen_index_train = 0
                 random.shuffle(self.__train)
             else:
-                x, y = mysql.get_input_by_frame(self.__train[self.__gen_index_train * self._batch_size:(self.__gen_index_train + 1) * self._batch_size], self.__cur)
+                frames = self.__train[self.__gen_index_train * self._batch_size:(self.__gen_index_train + 1) * self._batch_size]
                 self.__gen_index_train += 1
-            x = preprocessing.StandardScaler().fit_transform(x.T).T 
-            y = y.reshape(-1, 1)
-            yield x, y
+            yield frames
 
     def val_gen(self):
         while True:
-            assert(self.__gen_index_val*self._batch_size<len(self.__val))
             if (self.__gen_index_val + 1) * self._batch_size > len(self.__val):
-                # return rest and then switch files
-                x, y = mysql.get_input_by_frame(self.__val[self.__gen_index_val * self._batch_size:], self.__cur)
+                frames = self.__val[self.__gen_index_val * self._batch_size:]
                 self.__gen_index_val = 0
             else:
-                x, y = mysql.get_input_by_frame(self.__val[self.__gen_index_val * self._batch_size:(self.__gen_index_val + 1) * self._batch_size], self.__cur)
+                frames = self.__val[self.__gen_index_val * self._batch_size:(self.__gen_index_val + 1) * self._batch_size]
                 self.__gen_index_val += 1
-            y = y.reshape(-1, 1)
-            x = preprocessing.StandardScaler().fit_transform(x.T).T 
-            yield x, y
+            yield frames
     def get_param(self):
         return len(self.__train), len(self.__val), self.train_steps(), self.val_steps()
 

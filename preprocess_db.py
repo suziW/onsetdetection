@@ -51,7 +51,7 @@ class Preprocess:
         db = pymysql.connect(host="localhost",user="root",
             password="1234",db="onset_detection",port=3306)
         cur = db.cursor()
-        sql = "insert into maps(x_train, y_onset) values(%s, %s)"
+        sql = "insert into maps_modify(x_train, y_onset) values(%s, %s)"
         try:
             cur.executemany(sql, [(self.__x_input[i], self.__y_input[i]) for i in range(length)])
             # cur.executemany(sql, self.__x_input)

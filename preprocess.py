@@ -47,21 +47,21 @@ class Preprocess:
     
     def __save(self):
         print('----------- saving......')
-        # indices = np.random.permutation(len(self.__x_input))
         self.__x_input = np.array(self.__x_input)
         self.__y_input = np.array(self.__y_input)
-        self.__y_groundtruth = np.array(self.__y_groundtruth)
+        # self.__y_groundtruth = np.array(self.__y_groundtruth)
         assert(self.__x_input.shape[0]==self.__y_input.shape[0])
-        # self.__x_input = self.__x_input[indices]
-        # self.__y_input = self.__y_input[indices]
         mmx = np.memmap(filename=self.__output_dir+'x_input.dat', mode='w+', shape=self.__x_input.shape, dtype=float)
         mmx[:] = self.__x_input[:]
+        del mmx, self.__x_input
         mmy = np.memmap(filename=self.__output_dir+'y_input.dat', mode='w+', shape=self.__y_input.shape)
         mmy[:] = self.__y_input[:]
+        del mmy, self.__y_input
         mmgroundtruth = np.memmap(filename=self.__output_dir+'y_groundtruth.dat', mode='w+', shape=self.__y_groundtruth.shape)
         mmgroundtruth[:] = self.__y_groundtruth[:]
-        print('>>>>>>>>>> (x, y, g).shape: ', mmx.shape, mmy.shape, mmgroundtruth.shape)
-        del mmx, mmy, mmgroundtruth
+        del mmgroundtruth, self.__y_groundtruth
+        # print('>>>>>>>>>> (x, y, g).shape: ', mmx.shape, mmy.shape, mmgroundtruth.shape)
+        # del mmx, mmy, mmgroundtruth
 
 
     def __midfile2np(self):
@@ -69,10 +69,10 @@ class Preprocess:
             midobj = pretty_midi.PrettyMIDI(file)     # loadfile
             # endtime = midobj.get_end_time()
             # print(endtime)
-            mid_org = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
-            print('>>>>>>>>>> mid_org:', file, mid_org.shape)
-            mid = np.zeros(mid_org.shape)
-            mid[mid_org > 0] = 1
+            mid = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
+            # print('>>>>>>>>>> mid_org:', file, mid_org.shape)
+            # mid = np.zeros(mid_org.shape)
+            # mid[mid > 0] = 1
             # for i, j in enumerate(np.sum(mid, axis=1)):
             #     if j>0.1:
             #         mid_org=mid_org[i:]
@@ -85,7 +85,7 @@ class Preprocess:
                     if mid[i+self.__step, note] < mid[i+self.__step*2, note]:
                         onoff_detected = 1
                 self.__y_input.append(onoff_detected) 
-                self.__y_groundtruth.append(mid_org[i+self.__step*2])
+                # self.__y_groundtruth.append(mid[i+self.__step*2])
             self.__align_list.append(len(self.__y_input))
             # break
             
@@ -139,9 +139,11 @@ def plot(dir, begin, end):  # x_input': (27256, 1320), 'y_input': (27256,)
             plt.show()
 
 if __name__=='__main__':
-    input_dir = 'data/maps/train/'
-    output_dir = 'data/maps/train/'
-
+    input_dir = '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkAm_2/ENSTDkAm/MUS/'
+    output_dir = '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkAm_2/ENSTDkAm/MUS/'
     pre = Preprocess(input_dir, output_dir)
     print(pre.get_param())
-    plot(output_dir, 0, 500)
+    # plot(output_dir, 0, 500)
+    # input_dir = 'data/maps/test/{}/'
+    # for i in range(1, 10):
+    #     pre = Preprocess(input_dir.format(i), input_dir.format(i))    

@@ -9,7 +9,7 @@ import os
 import random
 
 sr = 22050
-step = 0.33        # times of window_size
+step = 1/3        # times of window_size
 window_size = 60       # ms
 
 class DataGen:
@@ -81,7 +81,7 @@ class DataGen:
                 x, y = self.__x_train[self.i * self._batch_size:(self.i + 1) * self._batch_size],\
                         self.__y_train[self.i * self._batch_size:(self.i + 1) * self._batch_size]
                 self.i += 1
-            y = y.reshape(-1, 1)
+            # y = y.reshape(-1, 1)
             yield x, y
 
     def test_gen(self):
@@ -94,7 +94,7 @@ class DataGen:
                 x, y = self.__x_test[self.i * self._batch_size:(self.i + 1) * self._batch_size],\
                         self.__y_test[self.i * self._batch_size:(self.i + 1) * self._batch_size]
                 self.i += 1
-            y = y.reshape(-1, 1)
+            # y = y.reshape(-1, 1)
             yield x, y
 
     def __readmm(self):

@@ -14,23 +14,11 @@ def get_index(cur):
     return zero_index, one_index
 
 def get_input_by_frame(frame, cur):
-    # time1 = time.time()
-    assert(type(frame)==list)
-    if len(frame)>1:
-        frame = tuple(frame)
-        sql = 'select x_train, y_onset from maps where frame in {}'
-    elif len(frame)==1:
-        frame = frame[0]
-        sql = 'select x_train, y_onset from maps where frame in ({})'
-    else:
-        print('$$$$$$$$$$ error input in get_input_by_frmae')
+    frame = tuple(frame)
+    sql = 'select x_train, y_onset from maps where frame in {}'
     cur.execute(sql.format(frame))
     result = cur.fetchall()
-
-    x_train = [i[0] for i in result]
-    y_onset = [i[1] for i in result]
-    float_list = [np.fromstring(x, dtype=np.float32) for x in x_train]
-    return np.array(float_list), np.array(y_onset)
+    return result
 
 if __name__=='__main__':
     db = pymysql.connect(host="localhost", user="root", password="1234",

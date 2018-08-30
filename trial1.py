@@ -5,45 +5,43 @@ import threading
 import time
 from trial3 import DataGen
 
-data = DataGen()
-Thread_num = 15
 class myThread(threading.Thread):
-    def __init__(self, name, q):
+    def __init__(self, name, q, gen):
         super(myThread, self).__init__(name=name)
-        global data
         self.q = q
-        self.gen = data.gendata()
-        self.stop = False
+        # global data
+        self.gen = gen
+        print(self.gen)
+        self.inque = True
         self.name = name
         print('THREAD id {} started'.format(self.name))
 
     def run(self):
-        while not self.stop:
-            self.q.put(next(self.gen))
+        while self.inque:
+            self.q.put(next(self.gen()))
         print('THREAD id {} stoped'.format(self.name))
 
-    def stopq(self):
-        self.stop = True
-        print(q.qsize(), 'id', self.name)
+    def stop(self):
+        self.inque = False
+        print(self.q.qsize(), 'id', self.name)
         self.q.get(timeout=1)
+if __name__ == '__main__':
+    Thread_num = 3
+    q = queue.Queue(100)
+    data = DataGen()
 
-q = queue.Queue(100)
-
-#向资源池里面放10个数用作测试
-
-#开Thread_num个线程 
-start = time.time()
-inq = []
-for i in range(Thread_num):
-    inq.append(myThread(i, q))
-    inq[i].start()
-last = time.time()
-for i in range(20):
-    outq = q.get()
-    # time.sleep(0.1)
-    print('=======', outq, '===', time.time()- last)
+    start = time.time()
+    inq = []
+    for i in range(Thread_num):
+        inq.append(myThread(i, q, data.gendata))
+        inq[i].start()
     last = time.time()
+    for i in range(4):
+        outq = q.get()
+        time.sleep(0.1)
+        print('=======', outq, '===', time.time()- last)
+        last = time.time()
 
-for i in range(Thread_num):
-    inq[i].stopq()  
-print('============================ total time: ', time.time() - start)
+    for i in range(Thread_num):
+        inq[i].stop()  
+    print('============================ total time: ', time.time() - start)

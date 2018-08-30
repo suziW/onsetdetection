@@ -89,11 +89,15 @@ class Model_deep:
     def __init__(self, window_size):
         self.window_size = int(window_size/3)
         self.X = tf.placeholder(tf.float32, [None, 3*self.window_size], name='x_input')
-        self.Y = tf.placeholder(tf.float32, [None, 1], name='y_input')
+        self.Y = tf.placeholder(tf.int32, [None], name='y_input')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob') # dropout (keep probability)
+        self.training = tf.placeholder(tf.bool, name='training_flag')
+
+        self.label = tf.one_hot(self.Y, 2, 1.0, 0.0) 
+
         self.kernal_sizes = [440, 55, 7]
         self.filters = [32, 64, 64]
-        self.units = [128, 1]
+        self.units = [128, 2]
 
     def conv1d(self, input, kernal_size, filters, stride=1, padding='SAME'):
         with tf.name_scope('convpool_scope'):
@@ -101,7 +105,8 @@ class Model_deep:
             w = tf.Variable(tf.truncated_normal([kernal_size, input_dim, filters], dtype=tf.float32)/10, name='conv_weight')
             b = tf.Variable(tf.zeros([filters], dtype=tf.float32), name='conv_biase')
             conv_mid = tf.nn.bias_add(tf.nn.conv1d(input, w, stride, padding), b)
-            conv = tf.nn.relu(conv_mid)
+            norm = tf.layers.batch_normalization(conv_mid, training=self.training)
+            conv = tf.nn.relu(norm)
             return tf.layers.max_pooling1d(conv, pool_size=2, strides=2, padding=padding)
 
     def dense(self, input, units, activation=None):
@@ -113,7 +118,8 @@ class Model_deep:
             if activation == None:
                 return dense_mid
             else:
-                return activation(dense_mid)
+                norm = tf.layers.batch_normalization(dense_mid, training=self.training)
+                return activation(norm)
 
     def deep_net(self):
         with tf.name_scope('deep_net'):
