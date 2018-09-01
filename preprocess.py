@@ -22,13 +22,13 @@ bins_per_octave = 12 * bin_multiple  # should be a multiple of 12
 n_bins = (max_midi - min_midi + 1) * bin_multiple
 
 class Preprocess:
-    def __init__(self, input_dir, output_dir):
+    def __init__(self, input_dir):
         self.__msdelta = 1000/sr
         self.__framepms = int(sr//1000)
         self.__window_size = window_size*self.__framepms
         self.__step = math.floor(self.__window_size*step)
         self.__input_dir = input_dir
-        self.__output_dir = output_dir
+        self.__output_dir = input_dir
 
         self.__wavfiles = []
         self.__midfiles = []
@@ -39,8 +39,9 @@ class Preprocess:
         self.__y_input = []
         self.__align_list = []
         self.__x_input = []
-        self.__midfile2np()
-        self.__wavfile2np()
+        self.__get_aligned_xy()
+        # self.__midfile2np()
+        # self.__wavfile2np()
         # print(len(self.__x_input), len(self.__y_input))
 
         self.__save()
@@ -49,20 +50,48 @@ class Preprocess:
         print('----------- saving......')
         self.__x_input = np.array(self.__x_input)
         self.__y_input = np.array(self.__y_input)
-        # self.__y_groundtruth = np.array(self.__y_groundtruth)
+        self.__y_groundtruth = np.array(self.__y_groundtruth)
         assert(self.__x_input.shape[0]==self.__y_input.shape[0])
         mmx = np.memmap(filename=self.__output_dir+'x_input.dat', mode='w+', shape=self.__x_input.shape, dtype=float)
         mmx[:] = self.__x_input[:]
-        del mmx, self.__x_input
+        # del mmx, self.__x_input
         mmy = np.memmap(filename=self.__output_dir+'y_input.dat', mode='w+', shape=self.__y_input.shape)
         mmy[:] = self.__y_input[:]
-        del mmy, self.__y_input
+        # del mmy, self.__y_input
         mmgroundtruth = np.memmap(filename=self.__output_dir+'y_groundtruth.dat', mode='w+', shape=self.__y_groundtruth.shape)
         mmgroundtruth[:] = self.__y_groundtruth[:]
-        del mmgroundtruth, self.__y_groundtruth
+        # del mmgroundtruth, self.__y_groundtruth
         # print('>>>>>>>>>> (x, y, g).shape: ', mmx.shape, mmy.shape, mmgroundtruth.shape)
         # del mmx, mmy, mmgroundtruth
 
+    def __get_aligned_xy(self):
+        for mid_file in self.__midfiles:
+            wav_file = os.path.splitext(mid_file)[0] + '.wav'
+            # get mid
+            midobj = pretty_midi.PrettyMIDI(mid_file)     # loadfile
+            mid = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
+            mid[mid>0] = 1
+            for i, j in enumerate(np.sum(mid, axis=1)):
+                if j>0.1:
+                    mid = mid[i:]
+                    break
+            print('>>>>>>>>>>> mid:', mid_file, mid.shape)
+            # get wav
+            wav, _ = librosa.load(wav_file, sr)
+            for i, j in enumerate(wav):
+                if j > 0.001:
+                    wav = wav[i:]
+                    break
+            print('>>>>>>>>>>> wav:', wav_file, wav.shape)
+
+            for i in np.arange(0, mid.shape[0]-self.__window_size+1, self.__step):
+                onoff_detected = 0
+                for note in range(note_range):
+                    if mid[i+self.__step, note] < mid[i+self.__step*2, note]:
+                        onoff_detected = 1
+                self.__y_input.append(onoff_detected) 
+                self.__y_groundtruth.append(mid[i+self.__step*2])
+                self.__x_input.append(wav[i:i+self.__window_size])
 
     def __midfile2np(self):
         for file in self.__midfiles:
@@ -139,11 +168,8 @@ def plot(dir, begin, end):  # x_input': (27256, 1320), 'y_input': (27256,)
             plt.show()
 
 if __name__=='__main__':
-    input_dir = '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkAm_2/ENSTDkAm/MUS/'
-    output_dir = '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkAm_2/ENSTDkAm/MUS/'
-    pre = Preprocess(input_dir, output_dir)
-    print(pre.get_param())
-    # plot(output_dir, 0, 500)
-    # input_dir = 'data/maps/test/{}/'
-    # for i in range(1, 10):
-    #     pre = Preprocess(input_dir.format(i), input_dir.format(i))    
+    input_dir = 'data/maps/test/*/'
+    for dir in glob.glob(input_dir):
+        print(dir)
+        pre = Preprocess(dir)
+        print(pre.get_param())

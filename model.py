@@ -102,7 +102,7 @@ class Model_deep:
     def conv1d(self, input, kernal_size, filters, stride=1, padding='SAME'):
         with tf.name_scope('convpool_scope'):
             input_dim = int(input.get_shape()[2])
-            w = tf.Variable(tf.truncated_normal([kernal_size, input_dim, filters], dtype=tf.float32)/10, name='conv_weight')
+            w = tf.Variable(tf.truncated_normal([kernal_size, input_dim, filters], dtype=tf.float32), name='conv_weight')
             b = tf.Variable(tf.zeros([filters], dtype=tf.float32), name='conv_biase')
             conv_mid = tf.nn.bias_add(tf.nn.conv1d(input, w, stride, padding), b)
             norm = tf.layers.batch_normalization(conv_mid, training=self.training)
@@ -112,7 +112,7 @@ class Model_deep:
     def dense(self, input, units, activation=None):
         with tf.name_scope('dense_scope'):
             input_dim = int(input.get_shape()[1])
-            w = tf.Variable(tf.truncated_normal([input_dim, units], dtype=tf.float32)/10, name='dense_weight')
+            w = tf.Variable(tf.truncated_normal([input_dim, units], dtype=tf.float32), name='dense_weight')
             b = tf.Variable(tf.zeros([units], dtype=tf.float32), name='dense_biase')
             dense_mid = tf.add(tf.matmul(input, w), b)
             if activation == None:

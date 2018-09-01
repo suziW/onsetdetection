@@ -3,8 +3,8 @@ import numpy as np
 import time
 
 def get_index(cur):
-    sql0 = 'select frame from maps where y_onset=0'
-    sql1 = 'select frame from maps where y_onset=1'
+    sql0 = 'select frame from maps_final where y_onset=0'
+    sql1 = 'select frame from maps_final where y_onset=1'
     cur.execute(sql0)
     zero_index = cur.fetchall()
     cur.execute(sql1)
@@ -15,7 +15,7 @@ def get_index(cur):
 
 def get_input_by_frame(frame, cur):
     frame = tuple(frame)
-    sql = 'select x_train, y_onset from maps where frame in {}'
+    sql = 'select x_train, y_onset from maps_final where frame in {}'
     cur.execute(sql.format(frame))
     result = cur.fetchall()
     return result

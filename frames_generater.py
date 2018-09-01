@@ -23,7 +23,8 @@ class DataGen:
                     db="onset_detection",port=3306)
         self.__cur = self.__db.cursor()
         self._batch_size = batch_size
-        self.__zeros, self.__ones = mysql.get_index(self.__cur)   #3106827 = 2800958 + 305869 
+        self.__zeros, self.__ones = mysql.get_index(self.__cur)
+        print(len(self.__zeros), len(self.__ones))
 
         # print('>>>>>>>>>>>>>>>>>> shufflling.....')       
         random.shuffle(self.__zeros)
@@ -99,16 +100,5 @@ class DataGen:
             plt.show()
 
 if __name__ == '__main__':
-    start = time.time()    
-    dataGen = DataGen(batch_size=256, split=0.99)
-    for i in range(500):
-        x, y = next(dataGen.train_gen())
-        print('--------------{}/{}-------'.format(i, 500), end='\r')
-    print('===============time: ', time.time() - start)
-    # sum = 0
-    # temp = 0
-    # for i in range(20000):
-    #     x, y = next(dataGen.train_gen())
-    #     if y>0:
-    #         dataGen.check_data(x[0], y[0])
-    # print(sum)
+    data = DataGen()
+    print(data.get_param())

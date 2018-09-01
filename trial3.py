@@ -6,31 +6,12 @@ import math
 import mysql
 import time
 import pymysql
+import os 
 
-sr = 22050
-step = 0.33        # times of window_size
-window_size = 60       # ms
+dir = '/model/sht/goupi/xijingping/lasdfj.wav'
+print(os.path.split(dir))
+print(os.path.splitext(dir))
 
-class DataGen:
-    def __init__(self):
-        print('>>>>>>>>>>>>>>>>>> getting data......')       
-        self.__db = pymysql.connect(host="localhost", user="root", password="1234",
-                    db="onset_detection",port=3306)
-        self.__cur = self.__db.cursor()
-        self.__train = list(np.arange(10))
-        self.__index = 0
-
-    def gendata(self):
-        while True:
-            time.sleep(1)
-            x = self.__train[self.__index]
-            if (self.__index+1) == len(self.__train):
-                self.__index = 0
-            else:
-                self.__index += 1
-            yield x
-
-if __name__ == '__main__':
-    data = DataGen()
-    for i in range(13):
-        print(next(data.gendata()))
+wav = np.arange(5)
+for i,j in enumerate(wav):
+    print(i, j)

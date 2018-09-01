@@ -17,7 +17,7 @@ epochs = 44
 batch_size = 256
 dropout = 0.75
 print_step = 1000
-early_stop = {'best_accuracy': 0.0, 'tolerance':5, 'not_improve_cnt':0}
+early_stop = {'best_accuracy': 0.0, 'tolerance':9, 'not_improve_cnt':0}
 
 data = InputGen(batch_size=batch_size, split=0.99, thread_num=5)
 step_per_epoch = data.train_steps()
@@ -26,11 +26,10 @@ print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
 ########################################################################################################################################################################################  
 ########################################################################################################################################################################################  
 
-model = Model_dense(window_size)
-logits = model.dense_net()
+model = Model_deep(window_size)
+logits = model.deep_net()
 
 with tf.name_scope('optimize_scope'):
-    print("????????????", logits, model.label)
     loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=model.label, logits=logits))
     # loss_op = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=model.Y))
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
@@ -75,19 +74,24 @@ def train_method(train_op, learning_rate=learning_rate):
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ init model')
     summary_writer = tf.summary.FileWriter('model/logs', sess.graph)
     sess.graph.finalize()
-    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ over preparing for train')
+    print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ preparing for train')
     for step in range(1, num_steps+1):
         batch_x, batch_y = next(data.train_gen())
         sess.run(train_op, feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: dropout, model.training: True})
-        accuracy = 0
+
         if step % step_per_epoch == 0:     # one epoch done, evaluate model
+            print('###########################################')
+            accuracy = 0
             for _ in range(data.val_steps()):
                 val_x, val_y = next(data.val_gen())
-                test_acc = sess.run(accuracy_op,
+                test_acc, test_prediction = sess.run([accuracy_op, prediction_type], 
                                 feed_dict={model.X: val_x, model.Y: val_y, model.keep_prob: 1.0, model.training: False})
                 accuracy += test_acc 
+                # print('---------------test_acc:', test_acc)
+                # print('--------test_prediction:', test_prediction[:31])
+                # print('------------groundtruth:', val_y[:31])
+
             accuracy = accuracy/data.val_steps()
-            print('###########################################')
             print('epoch ', step/step_per_epoch)
             print('best_accuracy: ', early_stop['best_accuracy'])
             print('test accuracy: ', accuracy)

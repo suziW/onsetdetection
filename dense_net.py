@@ -38,7 +38,7 @@ def Linear(x) :
 
 
 class Model_dense:
-    def __init__(self, window_size, filters=16):
+    def __init__(self, window_size, filters=32):
         self.window_size = int(window_size/3)
         self.X = tf.placeholder(tf.float32, [None, 3*self.window_size], name='x_input')
         self.Y = tf.placeholder(tf.int32, [None], name='y_input')
@@ -47,7 +47,7 @@ class Model_dense:
 
         self.label = tf.one_hot(self.Y, 2, 1.0, 0.0) 
 
-        self.nb_blocks = [3, 6, 12, 8]
+        self.nb_blocks = [6, 12, 24, 16]
         self.filters = filters
 
     def bottleneck_layer(self, x, scope):

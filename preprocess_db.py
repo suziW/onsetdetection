@@ -27,31 +27,33 @@ class Preprocess:
         self.__msdelta = 1000/sr
         self.__framepms = int(sr//1000)
         self.__window_size = window_size*self.__framepms
-        self.__step = math.floor(self.__window_size*step)
+        self.__step = int(window_size*step*self.__framepms)
         self.__input_dir = input_dir
+        self.__wav_mid_delta = 1 * self.__framepms
+        self.__extra_onset_step = 5 * self.__framepms
 
         self.__wavfiles = []
         self.__midfiles = []
         self.__input_num = 0
         self.__get_file()
 
-        self.__y_groundtruth = []
+        # self.__y_groundtruth = []
         self.__y_input = []
         self.__align_list = []
         self.__x_input = []
-        self.__midfile2np()
-        self.__wavfile2np()
+        self.__get_aligned_xy()
+        # self.__wavfile2np()
 
         self.__save()
     
     def __save(self):
         print('----------- saving......')
-        print('----------- lens', len(self.__x_input), len(self.__y_input))
+        assert(len(self.__x_input) == len(self.__y_input))
         length = len(self.__y_input)
         db = pymysql.connect(host="localhost",user="root",
             password="1234",db="onset_detection",port=3306)
         cur = db.cursor()
-        sql = "insert into maps_modify(x_train, y_onset) values(%s, %s)"
+        sql = "insert into maps_final(x_train, y_onset) values(%s, %s)"
         try:
             cur.executemany(sql, [(self.__x_input[i], self.__y_input[i]) for i in range(length)])
             # cur.executemany(sql, self.__x_input)
@@ -62,30 +64,58 @@ class Preprocess:
         db.commit()
         db.close()
 
-    def __midfile2np(self):
-        for file in self.__midfiles:
-            midobj = pretty_midi.PrettyMIDI(file)     # loadfile
-            mid_org = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
-            mid = np.zeros(mid_org.shape)
-            mid[mid_org > 0] = 1
-            # print('>>>>>>>>>> mid_org:', file, mid_org.shape)
-            # for i, j in enumerate(np.sum(mid, axis=1)):
-            #     if j>0.1:
-            #         mid_org=mid_org[i:]
-            #         mid = mid[i:]
-                    # break
-            print('>>>>>>>>>>> mid:', file, mid.shape)
+    def __get_aligned_xy(self):
+        error_cnt = 0
+        for mid_file in self.__midfiles:
+            wav_file = os.path.splitext(mid_file)[0] + '.wav'
+            # get mid
+            midobj = pretty_midi.PrettyMIDI(mid_file)     # loadfile
+            mid = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
+            mid[mid>0] = 1
+            for i, j in enumerate(np.sum(mid, axis=1)):
+                if j>0.1:
+                    mid = mid[i:]
+                    break
+            print('>>>>>>>>>>> mid:', mid_file, mid.shape)
+            # get wav
+            wav, _ = librosa.load(wav_file, sr)
+            for i, j in enumerate(wav):
+                if j > 0.001:
+                    wav = wav[i:]
+                    break
+            print('>>>>>>>>>>> wav:', wav_file, wav.shape)
+
             for i in np.arange(0, mid.shape[0]-self.__window_size+1, self.__step):
                 onoff_detected = 0
                 for note in range(note_range):
-                    if mid[i+self.__step, note] < mid[i+self.__step*2, note]:
+                    if mid[i+self.__step+self.__wav_mid_delta, note] < mid[i+self.__step*2, note]:
                         onoff_detected = 1
+                        extra = [i-3*self.__extra_onset_step, i-2*self.__extra_onset_step, i-self.__extra_onset_step,
+                                    i+self.__extra_onset_step, i+2*self.__extra_onset_step, i+3*self.__extra_onset_step] 
+                        # print('\n =======================================')
+                        # apppen_cnt = 0
+                        # j_cnt = 0
+                        for j in extra:
+                            blob = wav[j:j+self.__window_size]
+                            if len(blob) != self.__window_size:
+                                error_cnt += 1
+                                break
+                            # j_cnt += 1
+                            # print('j_cnt', j_cnt)
+                            # print('------------j', j, end=' ')/
+                            if mid[j+self.__step+self.__wav_mid_delta, note] < mid[j+self.__step*2, note]:
+                                # apppen_cnt += 1
+                                # print('apppen_cnt', apppen_cnt)
+                                self.__y_input.append(1) 
+                                # print('====================1')
+                                self.__x_input.append(blob.tobytes())
+                        break
                 self.__y_input.append(onoff_detected) 
-                # self.__y_groundtruth.append(mid_org[i+self.__step*2])
-            self.__align_list.append(len(self.__y_input))
+                # print('====================', onoff_detected)
+                self.__x_input.append(wav[i:i+self.__window_size].tobytes())
             # break
+        print('............ error data: ', error_cnt)
             
-
     def __wavfile2np(self):
         alignIndex = 0
         for file in self.__wavfiles:
@@ -145,8 +175,8 @@ if __name__=='__main__':
         '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_AkPnBsdf_2/*/MUS/',
         '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_AkPnCGdD_2/*/MUS/',
         '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_AkPnStgb_2/*/MUS/',
-        '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkAm_2/*/MUS/',
-        '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkCl_2/*/MUS/',
+        # '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkAm_2/*/MUS/',
+        # '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_ENSTDkCl_2/*/MUS/',
         '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_SptkBGAm_2/*/MUS/',
         '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_SptkBGCl_2/*/MUS/',
         '/media/admin1/32B44FF2B44FB75F/Data/MAPS/MAPS_StbgTGd2_2/*/MUS/'

@@ -26,7 +26,7 @@ class myThread(threading.Thread):
         # print(next(self.gen()))
         self.enque = True
         self.name = name
-        self.sql = 'select x_train, y_onset from maps where frame in {}'
+        self.sql = 'select x_train, y_onset from maps_final where frame in {}'
         print('THREAD id {} started'.format(self.name))
 
     def run(self):
@@ -35,10 +35,13 @@ class myThread(threading.Thread):
             frames = tuple(next(self.gen()))
             self.__cur.execute(self.sql.format(frames))
             result = self.__cur.fetchall()
-            x_train = [i[0] for i in result]
+            x_train = [np.fromstring(i[0], dtype=np.float32) for i in result]
             y_onset = [i[1] for i in result]
-            float_list = [np.fromstring(x, dtype=np.float32) for x in x_train]
-            x, y = np.array(float_list), np.array(y_onset)
+            # float_list = [np.fromstring(x, dtype=np.float32) for x in x_train]
+            # for i, j in enumerate(float_list): 
+            #     if j = []:
+            #         y_onset.remove()
+            x, y = np.array(x_train), np.array(y_onset)
             x = preprocessing.StandardScaler().fit_transform(x.T).T 
             self.q.put([x, y])
 
@@ -86,11 +89,11 @@ class InputGen:
         return self.data.get_val_len()
 
 if __name__=='__main__':
-    queuegen = InputGen(batch_size=256, thread_num=33)
+    queuegen = InputGen(batch_size=256, thread_num=1)
     start = time.time()
-    for i in range(500):
+    for i in range(5000):
         data = next(queuegen.train_gen())
-        print('====================================== {}/500'.format(i), end='\r')
+        print('====================================== {}/5000'.format(i), end='\r')
     print('\n time', time.time() - start)
     mid = time.time()
     for i in range(500):

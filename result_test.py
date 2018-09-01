@@ -1,6 +1,7 @@
 #00!/home/suzi/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 
+import glob
 import tensorflow as tf 
 import load
 import numpy as np 
@@ -105,12 +106,12 @@ class Eval:
         # plt.savefig('model/maps 0.77/pic/{}-{}pred vs onset'.format(begin, end))
         
         plt.figure(figsize=(50, 25))
-        plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_onset_pad[:, begin:end]*10)
+        plt.pcolor(4*self.y_groundtruth[:, begin:end]+self.y_onset_pad[:, begin:end])
         plt.title('groundtruth onset')
         # plt.savefig('model/maps 0.77/pic/{}-{}truth'.format(begin, end))
 
         plt.figure(figsize=(50, 25))
-        plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_pred_pad[:, begin:end]*10)
+        plt.pcolor(4*self.y_groundtruth[:, begin:end]+self.y_pred_pad[:, begin:end])
         plt.title('groundtruth pred')
         # plt.savefig('model/maps 0.77/pic/{}-{}pred'.format(begin, end))
 
@@ -169,23 +170,16 @@ class Eval:
 
 
 if __name__=='__main__':
-    input_dir = 'data/maps/test/{}/'
+    input_dir = 'data/maps/test/*/'
     model_dir = 'model/'
-    meta_name = '0.8838205645318891-1.0-21478.meta'
+    meta_name = '0.9390839993416726-23.0-372485.meta'
 
-    # get_predict(input_dir, model_dir, meta_name)
-    # evaluation = Eval(model_dir, input_dir, threshhole=0.8, onset_tolerance=0)
-    # evaluation.frameF()
-    # evaluation.precision()
-    # index = 0
-    # evaluation.plot(index, index+500)
-
-    for i in range(1,10):
-        print('============================================================================================', i)
-        get_predict(input_dir.format(i), model_dir, meta_name)
-        evaluation = Eval(model_dir, input_dir.format(i), threshhole=0.8, onset_tolerance=0)
+    for dir in glob.glob(input_dir):
+        print('============================================================================================', dir)
+        get_predict(dir, model_dir, meta_name)
+        evaluation = Eval(model_dir, dir, threshhole=0.5, onset_tolerance=1)
         evaluation.frameF()
         evaluation.precision()
         index = 0
-        # evaluation.plot(index, index+1000)
-        print('============================================================================================', i)
+        evaluation.plot(index, index+1000)
+        print('============================================================================================', dir)
