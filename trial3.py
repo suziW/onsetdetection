@@ -7,11 +7,8 @@ import mysql
 import time
 import pymysql
 import os 
+import pretty_midi
+from wav_start_time import wav_start
 
-dir = '/model/sht/goupi/xijingping/lasdfj.wav'
-print(os.path.split(dir))
-print(os.path.splitext(dir))
-
-wav = np.arange(5)
-for i,j in enumerate(wav):
-    print(i, j)
+wav  = '/jasl/asdh/ienlk/dsaf.wav'
+print(os.path.split(wav))

@@ -13,7 +13,7 @@ import os
 window_size = 1320
 dirpath = 'model/'
 learning_rate = 0.001
-epochs = 44
+epochs = 50
 batch_size = 256
 dropout = 0.75
 print_step = 1000
@@ -26,8 +26,8 @@ print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
 ########################################################################################################################################################################################  
 ########################################################################################################################################################################################  
 
-model = Model_deep(window_size)
-logits = model.deep_net()
+model = Model_dense(window_size)
+logits = model.dense_net()
 
 with tf.name_scope('optimize_scope'):
     loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=model.label, logits=logits))

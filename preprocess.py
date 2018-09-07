@@ -9,6 +9,7 @@ import pretty_midi
 import librosa
 import librosa.display
 import math
+from wav_start_time import wav_start_times
 
 sr = 22050
 step = 1/3        # times of window_size
@@ -29,6 +30,7 @@ class Preprocess:
         self.__step = math.floor(self.__window_size*step)
         self.__input_dir = input_dir
         self.__output_dir = input_dir
+        self.__extra_onset_step = 5 * self.__framepms
 
         self.__wavfiles = []
         self.__midfiles = []
@@ -67,31 +69,69 @@ class Preprocess:
     def __get_aligned_xy(self):
         for mid_file in self.__midfiles:
             wav_file = os.path.splitext(mid_file)[0] + '.wav'
+            wav_name = os.path.split(wav_file)[1]
             # get mid
             midobj = pretty_midi.PrettyMIDI(mid_file)     # loadfile
             mid = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
-            mid[mid>0] = 1
+            onsets = (midobj.get_onsets()*sr).astype(int)
+            # mid[mid>0] = 1
             for i, j in enumerate(np.sum(mid, axis=1)):
                 if j>0.1:
                     mid = mid[i:]
+                    onsets = np.unique(onsets - i).tolist()
+                    print('==========', len(onsets), onsets[:9])
                     break
+            mid_len = mid.shape[0]
             print('>>>>>>>>>>> mid:', mid_file, mid.shape)
             # get wav
             wav, _ = librosa.load(wav_file, sr)
-            for i, j in enumerate(wav):
-                if j > 0.001:
-                    wav = wav[i:]
-                    break
+            wav_start_time = int(wav_start_times[wav_name]*sr)
+            wav = wav[wav_start_time:]
             print('>>>>>>>>>>> wav:', wav_file, wav.shape)
 
             for i in np.arange(0, mid.shape[0]-self.__window_size+1, self.__step):
                 onoff_detected = 0
-                for note in range(note_range):
-                    if mid[i+self.__step, note] < mid[i+self.__step*2, note]:
-                        onoff_detected = 1
+                for onset in onsets[:5]:
+                    if onset < (i + self.__step*2): 
+                        onsets.remove(onset)
+                        if onset >= i + self.__step:
+                            onoff_detected = 1
+                            
                 self.__y_input.append(onoff_detected) 
                 self.__y_groundtruth.append(mid[i+self.__step*2])
                 self.__x_input.append(wav[i:i+self.__window_size])
+
+            # for i in np.arange(0, mid_len-self.__window_size+1, self.__step):
+            #     onoff_detected = 0
+            #     for onset in onsets[:5]:
+            #         if onset < (i + self.__step*2): 
+            #             onsets.remove(onset)
+            #             if onset >= i + self.__step:
+            #                 onoff_detected = 1
+            #                 extra = [i-3*self.__extra_onset_step, i-2*self.__extra_onset_step, i-self.__extra_onset_step,
+            #                             i+self.__extra_onset_step, i+2*self.__extra_onset_step, i+3*self.__extra_onset_step] 
+            #                 print('\n =======================================')
+            #                 apppen_cnt = 0
+            #                 j_cnt = 0
+            #                 for j in extra:
+            #                     blob = wav[j:j+self.__window_size]
+            #                     if len(blob) != self.__window_size: break
+            #                     j_cnt += 1
+            #                     print('j_cnt', j_cnt)
+            #                     # print('------------j', j, end=' ')
+            #                     if (onset >= j+self.__step) and (onset < j+self.__step*2):
+            #                         apppen_cnt += 1
+            #                         print('apppen_cnt', apppen_cnt)
+            #                         self.__y_input.append(1) 
+            #                         self.__y_groundtruth.append(mid[j+self.__step*2])
+            #                         print('====================1')
+            #                         self.__x_input.append(blob)
+            #     self.__y_input.append(onoff_detected) 
+            #     self.__y_groundtruth.append(mid[i+self.__step*2])
+            #     print('====================', onoff_detected)
+            #     self.__x_input.append(wav[i:i+self.__window_size])
+
+            print('===========', onsets)
 
     def __midfile2np(self):
         for file in self.__midfiles:
@@ -164,12 +204,16 @@ def plot(dir, begin, end):  # x_input': (27256, 1320), 'y_input': (27256,)
             plt.figure()
             plt.plot(x_input[i])
             plt.figure()
-            plt.pcolor(y_groundtruth.T[:, begin:end]+y_input[:, begin:end]*10)
+            plt.pcolor(y_groundtruth.T[:, begin:end]+y_input[:, begin:end]*20)
             plt.show()
 
 if __name__=='__main__':
-    input_dir = 'data/maps/test/*/'
+    input_dir = 'data/maps/train/*/'
+    i = 0
     for dir in glob.glob(input_dir):
+        i += 1
+        # if i != 3: continue
         print(dir)
         pre = Preprocess(dir)
         print(pre.get_param())
+        # plot(dir, 0, 2000)

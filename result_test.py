@@ -106,12 +106,12 @@ class Eval:
         # plt.savefig('model/maps 0.77/pic/{}-{}pred vs onset'.format(begin, end))
         
         plt.figure(figsize=(50, 25))
-        plt.pcolor(4*self.y_groundtruth[:, begin:end]+self.y_onset_pad[:, begin:end])
+        plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_onset_pad[:, begin:end]*20)
         plt.title('groundtruth onset')
         # plt.savefig('model/maps 0.77/pic/{}-{}truth'.format(begin, end))
 
         plt.figure(figsize=(50, 25))
-        plt.pcolor(4*self.y_groundtruth[:, begin:end]+self.y_pred_pad[:, begin:end])
+        plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_pred_pad[:, begin:end]*20)
         plt.title('groundtruth pred')
         # plt.savefig('model/maps 0.77/pic/{}-{}pred'.format(begin, end))
 
@@ -170,11 +170,21 @@ class Eval:
 
 
 if __name__=='__main__':
-    input_dir = 'data/maps/test/*/'
-    model_dir = 'model/'
-    meta_name = '0.9390839993416726-23.0-372485.meta'
+    input_dir = 'data/maps/train/*/'
 
+    # model_dir = 'model/mapsfix/'
+    # meta_name = '0.9390839993416726-23.0-372485.meta'
+    # model_dir = 'model/data1-dense/'
+    # meta_name = '0.9265652068026431-18.0-290106.meta'
+    # model_dir = 'model/data2-deep/'
+    # meta_name = '0.9452492247025172-26.0-403286.meta'
+    model_dir = 'model/'
+    meta_name = '0.9406533798445826-8.0-130976.meta'
+
+    i = 0
     for dir in glob.glob(input_dir):
+        i += 1
+        # if i !=3: continue
         print('============================================================================================', dir)
         get_predict(dir, model_dir, meta_name)
         evaluation = Eval(model_dir, dir, threshhole=0.5, onset_tolerance=1)

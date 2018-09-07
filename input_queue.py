@@ -26,7 +26,7 @@ class myThread(threading.Thread):
         # print(next(self.gen()))
         self.enque = True
         self.name = name
-        self.sql = 'select x_train, y_onset from maps_final where frame in {}'
+        self.sql = 'select x_train, y_onset from maps_fix where frame in {}'
         print('THREAD id {} started'.format(self.name))
 
     def run(self):
