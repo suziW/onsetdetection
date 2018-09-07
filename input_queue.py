@@ -9,15 +9,12 @@ import time
 from frames_generater import DataGen
 import numpy as np
 
-lock=threading.Lock()   #全局的锁对象
 
 class myThread(threading.Thread):
     def __init__(self, name, q, gen):
         super(myThread, self).__init__(name=name)
-        global lock
-
         self.__db = pymysql.connect(host="localhost", user="root", password="1234",
-                    db="onset_detection",port=3306)
+                    db="polyphonic",port=3306)
         self.__cur = self.__db.cursor()
 
         self.q = q
@@ -26,7 +23,7 @@ class myThread(threading.Thread):
         # print(next(self.gen()))
         self.enque = True
         self.name = name
-        self.sql = 'select x_train, y_onset from maps_final where frame in {}'
+        self.sql = 'select x_input, y_input from maps where frame in {}'
         print('THREAD id {} started'.format(self.name))
 
     def run(self):
@@ -36,13 +33,13 @@ class myThread(threading.Thread):
             self.__cur.execute(self.sql.format(frames))
             result = self.__cur.fetchall()
             x_train = [np.fromstring(i[0], dtype=np.float32) for i in result]
-            y_onset = [i[1] for i in result]
+            y_onset = [np.fromstring(i[1], dtype=np.int8) for i in result]
             # float_list = [np.fromstring(x, dtype=np.float32) for x in x_train]
             # for i, j in enumerate(float_list): 
             #     if j = []:
             #         y_onset.remove()
             x, y = np.array(x_train), np.array(y_onset)
-            x = preprocessing.StandardScaler().fit_transform(x.T).T 
+            x = preprocessing.StandardScaler().fit_transform(x.T).T
             self.q.put([x, y])
 
         print('THREAD id {} stoped'.format(self.name))
@@ -101,5 +98,5 @@ if __name__=='__main__':
         print('====================================== {}/500'.format(i), end='\r')    
     print('\n time', time.time() - mid)
     print(data[1].shape, data[0].shape)
-    # print(data)
+    print(data)
     queuegen.stop()

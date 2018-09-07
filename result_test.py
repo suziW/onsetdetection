@@ -11,8 +11,8 @@ import math
 from sklearn import preprocessing
 
 def get_predict(input_dir, model_dir, meta_name):
-    data = load.DataGen(input_dir, batch_size=256, split=1)
-    print('>>>>>>>>>>>>>>>>>> data info:', data.getinfo_train())
+    data = load.DataGen(input_dir, batch_size=256)
+    print('>>>>>>>>>>>>>>>>>> data info:', data.get_info())
     with tf.Session() as sess:
         saver = tf.train.import_meta_graph(os.path.join(model_dir, 'savers/', meta_name))
         saver.restore(sess, tf.train.latest_checkpoint(os.path.join(model_dir, 'savers/')))
@@ -27,10 +27,10 @@ def get_predict(input_dir, model_dir, meta_name):
 
         y_prediction = []
         y_groundtruth = []
-        for i in range(data.train_steps()):
-            batch_x , batch_y   = next(data.train_gen())
-            batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T 
-            print('predicting.........................................{}/{}.......'.format(i, data.train_steps()), end='\r')
+        for i in range(data.test_steps()):
+            batch_x, batch_y   = next(data.test_gen())
+            batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T
+            print('predicting.........................................{}/{}.......'.format(i, data.test_steps()), end='\r')
             batch_pred = sess.run(prediction, feed_dict={X: batch_x , Y: batch_y , keep_prob: 1, training: False})
             y_prediction.append(batch_pred)
             y_groundtruth.append(batch_y)
@@ -41,6 +41,11 @@ def get_predict(input_dir, model_dir, meta_name):
         # print('>>>>>>>>>>>>>>>>>> pred: ', y_prediction.shape)
         assert(len(y_groundtruth)==y_prediction.shape[0])
 
+        plt.figure()
+        plt.pcolor(y_groundtruth[:1000].T)
+        plt.figure()
+        plt.pcolor(y_prediction[:1000].T)
+        plt.show()
         # ww_data = sess.run(ww)
         # print('>>>>>>>>>>>>>>>>>>>wc1: ', ww_data.shape, type(ww_data))
         # # for i in range(110):
@@ -53,13 +58,13 @@ def get_predict(input_dir, model_dir, meta_name):
         # # print(axe)
         # plt.show()
 
-        print('>>>>>>>>>>>>>>>>>> saving: ', model_dir)
-        mm1 = np.memmap(filename=os.path.join(model_dir, 'y_onset.dat'), mode='w+', shape=y_groundtruth .shape[0])
-        mm1[:] = y_groundtruth [:]
-        mm2 = np.memmap(filename=os.path.join(model_dir, 'y_pred.dat'), mode='w+', shape=y_prediction.shape[0], dtype=float)
-        mm2[:] = y_prediction[: ,1]
-        del mm1
-        del mm2
+        # print('>>>>>>>>>>>>>>>>>> saving: ', model_dir)
+        # mm1 = np.memmap(filename=os.path.join(model_dir, 'y_onset.dat'), mode='w+', shape=y_groundtruth .shape[0])
+        # mm1[:] = y_groundtruth [:]
+        # mm2 = np.memmap(filename=os.path.join(model_dir, 'y_pred.dat'), mode='w+', shape=y_prediction.shape[0], dtype=float)
+        # mm2[:] = y_prediction[: ,1]
+        # del mm1
+        # del mm2
 
 class Eval:
     """ prediction and groundtruth should be shape (frame, one_hot_notes)
@@ -106,12 +111,12 @@ class Eval:
         # plt.savefig('model/maps 0.77/pic/{}-{}pred vs onset'.format(begin, end))
         
         plt.figure(figsize=(50, 25))
-        plt.pcolor(4*self.y_groundtruth[:, begin:end]+self.y_onset_pad[:, begin:end])
+        plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_onset_pad[:, begin:end]*20)
         plt.title('groundtruth onset')
         # plt.savefig('model/maps 0.77/pic/{}-{}truth'.format(begin, end))
 
         plt.figure(figsize=(50, 25))
-        plt.pcolor(4*self.y_groundtruth[:, begin:end]+self.y_pred_pad[:, begin:end])
+        plt.pcolor(self.y_groundtruth[:, begin:end]+self.y_pred_pad[:, begin:end]*20)
         plt.title('groundtruth pred')
         # plt.savefig('model/maps 0.77/pic/{}-{}pred'.format(begin, end))
 
@@ -171,15 +176,20 @@ class Eval:
 
 if __name__=='__main__':
     input_dir = 'data/maps/test/*/'
+    # model_dir = 'model/data3-deep/'
+    # meta_name = '0.09419999538880328-29.0-263900.meta'
     model_dir = 'model/'
-    meta_name = '0.9390839993416726-23.0-372485.meta'
+    meta_name = '0.14619550708195436-3.0-27300.meta'
 
+    i = 0
     for dir in glob.glob(input_dir):
+        i += 1
+        # if i !=9: continue
         print('============================================================================================', dir)
         get_predict(dir, model_dir, meta_name)
-        evaluation = Eval(model_dir, dir, threshhole=0.5, onset_tolerance=1)
-        evaluation.frameF()
-        evaluation.precision()
-        index = 0
-        evaluation.plot(index, index+1000)
-        print('============================================================================================', dir)
+        # evaluation = Eval(model_dir, dir, threshhole=0.5, onset_tolerance=1)
+        # evaluation.frameF()
+        # evaluation.precision()
+        # index = 7000
+        # evaluation.plot(index, index+1000)
+        # print('============================================================================================', dir)

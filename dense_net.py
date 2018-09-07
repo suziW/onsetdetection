@@ -106,10 +106,10 @@ class Model_dense:
             x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[1], layer_name='block2')
             x = self.transition_layer(x, scope='trans2')    # windowsize/16 = 28
 
-            x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[2], layer_name='block3')
-            x = self.transition_layer(x, scope='trans3')    # windowsize/32 = 14
+            # x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[2], layer_name='block3')
+            # x = self.transition_layer(x, scope='trans3')    # windowsize/32 = 14
             
-            x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[3], layer_name='block4')
+            x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[2], layer_name='block4')
 
             # output
             x = tf.layers.batch_normalization(x, training=self.training, name='batchnorm_final')

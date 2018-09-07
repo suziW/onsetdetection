@@ -10,7 +10,7 @@ from model import Model_advance, Model_base, Model_deep
 from dense_net import Model_dense
 import os 
 
-window_size = 1320
+window_size = 440
 dirpath = 'model/'
 learning_rate = 0.001
 epochs = 44
@@ -27,10 +27,11 @@ print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
 ########################################################################################################################################################################################  
 
 model = Model_deep(window_size)
+threshhole = tf.constant(0.8)
 logits = model.deep_net()
 
 with tf.name_scope('optimize_scope'):
-    loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=model.label, logits=logits))
+    loss_op = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=model.Y, logits=logits))
     # loss_op = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=model.Y))
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
     # optimizer = tf.train.MomentumOptimizer(0.001, 0.4)
@@ -44,10 +45,12 @@ with tf.name_scope('optimize_scope'):
         train_op3 = optimizer.minimize(loss_op)
 
 with tf.name_scope('accuracy_scope'):
-    prediction_op = tf.nn.softmax(logits)
-    prediction_type = tf.argmax(prediction_op, 1) 
-    correct_prediction = tf.equal(tf.argmax(prediction_op, 1),tf.argmax(model.label,1))
-    accuracy_op = tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
+    prediction_op = tf.nn.sigmoid(logits)
+    prediction_type = tf.cast(tf.greater(prediction_op, threshhole), tf.float32)
+    prediction_location = tf.where(tf.greater(prediction_op, threshhole))
+    correct_op = tf.cast(tf.equal(prediction_type, model.Y), tf.float32)
+    correct_op = tf.equal(tf.reduce_mean(correct_op, axis=1), 1)
+    accuracy_op = tf.reduce_mean(tf.cast(correct_op,tf.float32))
 
 init = tf.global_variables_initializer()
 saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=3)
@@ -124,8 +127,8 @@ def train_method(train_op, learning_rate=learning_rate):
             print("-------------batch Loss: {:.4f}".format(train_loss))
             print("---------------accuracy: {:.4f}".format(train_acc))
             print('--------------time left: {}h {}min'.format(time_dict['remain_time']//3600, (time_dict['remain_time']%3600)//60))
-            print('------------ prediction:', pred[:31])
-            print('------------groundtruth:', batch_y[:31])
+            print('------------ prediction:', pred[:2], type(pred))
+            print('------------groundtruth:', batch_y[:2])
             print('===========================================================================================')
             summary_writer.add_summary(summary, step)
         # break
