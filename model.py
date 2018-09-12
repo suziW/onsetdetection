@@ -70,7 +70,7 @@ class Model_advance:
             for i in range(note_range):
                 stream.append(self.stream_net(x, self.conv_weights[i], self.window_weights[i]))
         merge_layer = tf.concat(values=stream, axis=1)
-        # hidden = self.dense(merge_layer, units[3], activation=tf.nn.relu)
+        # fc1 = self.dense(merge_layer, units[3], stream=tf.nn.relu)
         # hidden = tf.layers.dropout(hidden, self.keep_prob)
         out = self.dense(merge_layer, units[4])
         return out
@@ -95,9 +95,9 @@ class Model_deep:
 
         self.label = tf.one_hot(self.Y, 2, 1.0, 0.0) 
 
-        self.kernal_sizes = [440, 55, 7]
-        self.filters = [32, 64, 64]
-        self.units = [128, 2]
+        self.kernal_sizes = [110, 110, 110]
+        self.filters = [44, 88, 88]
+        self.units = [352, 2]
 
     def conv1d(self, input, kernal_size, filters, stride=1, padding='SAME'):
         with tf.name_scope('convpool_scope'):
@@ -125,12 +125,13 @@ class Model_deep:
         with tf.name_scope('deep_net'):
             x = tf.reshape(self.X, shape=[-1, 3, self.window_size])
             x = tf.transpose(x, perm=[0, 2, 1]) # (batch_size, 440, 3)
-            conv1 = self.conv1d(x, self.kernal_sizes[0], self.filters[0], stride=4) # kernal: (44, 3, 32) maxpool: 2
-            conv2 = self.conv1d(conv1, self.kernal_sizes[1], self.filters[1], stride=4) # kernal: (11, 32, 64) maxpool:2
-            conv3 = self.conv1d(conv2, self.kernal_sizes[2], self.filters[2], stride=2) # kernal: (4, 64, 64) maxpool:2
+            conv1 = self.conv1d(x, self.kernal_sizes[0], self.filters[0], stride=1) # kernal: (44, 3, 32) maxpool: 2
+            conv2 = self.conv1d(conv1, self.kernal_sizes[1], self.filters[1], stride=1) # kernal: (11, 32, 64) maxpool:2
+            conv3 = self.conv1d(conv2, self.kernal_sizes[2], self.filters[2], stride=1) # kernal: (4, 64, 64) maxpool:2
             flatten = tf.layers.flatten(conv3)
             fc1 = self.dense(flatten, self.units[0], activation=tf.nn.relu)
-            fc2 = self.dense(fc1, self.units[1])
+            drop = tf.layers.dropout(fc1, 1-self.keep_prob)
+            fc2 = self.dense(drop, self.units[1])
             return fc2
 
     def init_weights(self): 

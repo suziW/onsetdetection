@@ -12,10 +12,11 @@ import os
 
 window_size = 1320
 dirpath = 'model/'
-learning_rate = 0.001
+learning_rate = 0.01
+learning_decay = 0.8
 epochs = 50
 batch_size = 256
-dropout = 0.75
+dropout = 0.5
 print_step = 1000
 early_stop = {'best_accuracy': 0.0, 'tolerance':9, 'not_improve_cnt':0}
 
@@ -23,11 +24,11 @@ data = InputGen(batch_size=batch_size, split=0.99, thread_num=5)
 step_per_epoch = data.train_steps()
 num_steps = epochs*step_per_epoch
 print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
-########################################################################################################################################################################################  
-########################################################################################################################################################################################  
+######################################################################################################################################################################################## 
+########################################################################################################################################################################################
 
-model = Model_dense(window_size)
-logits = model.dense_net()
+model = Model_deep(window_size)
+logits = model.deep_net()
 
 with tf.name_scope('optimize_scope'):
     loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=model.label, logits=logits))
@@ -52,18 +53,19 @@ with tf.name_scope('accuracy_scope'):
 init = tf.global_variables_initializer()
 saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=3)
 tf.summary.scalar('loss_summary', loss_op)
+tf.summary.scalar('accuracy_summary', accuracy_op)
 for var in tf.trainable_variables():
     tf.summary.histogram(var.name, var)
 merge_summary_op = tf.summary.merge_all()
 tf.add_to_collection('pred_collection', prediction_op)
 time_dict = {'start_time': time.time(), 'det_time': 0, 'last_time':time.time()}
 # val_x, val_y = data.get_val_data()
-# val_x = preprocessing.MaxAbsScaler().fit_transform(val_x.T).T 
+# val_x = preprocessing.MaxAbsScaler().fit_transform(val_x.T).T
 # val_x = preprocessing.MinMaxScaler().fit_transform(val_x.T).T
 # val_x = preprocessing.StandardScaler().fit_transform(val_x.T).T
 # val_x = val_x * 10
-########################################################################################################################################################################################  
-########################################################################################################################################################################################  
+########################################################################################################################################################################################
+########################################################################################################################################################################################
 def train_method(train_op, learning_rate=learning_rate):
     sess = tf.Session()
     if os.path.exists('model/savers'):
@@ -109,7 +111,7 @@ def train_method(train_op, learning_rate=learning_rate):
             else:
                 early_stop['not_improve_cnt'] += 1
                 print('test accuracy not improving for {}'.format(early_stop['not_improve_cnt']))
-            learning_rate = learning_rate*0.9
+            learning_rate = learning_rate*learning_decay
             print('###########################################')
 
         if step % print_step == 0 or step == 1:

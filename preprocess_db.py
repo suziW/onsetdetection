@@ -32,7 +32,7 @@ class Preprocess:
         self.__step = int(window_size*step*self.__framepms)
         self.__input_dir = input_dir
         self.__wav_mid_delta = 1 * self.__framepms
-        self.__extra_onset_step = 5 * self.__framepms
+        self.__extra_onset = 4
 
         self.__wavfiles = []
         self.__midfiles = []
@@ -53,7 +53,7 @@ class Preprocess:
         db = pymysql.connect(host="localhost",user="root",
             password="1234",db="onset_detection",port=3306)
         cur = db.cursor()
-        sql = "insert into maps_fix(x_train, y_onset) values(%s, %s)"
+        sql = "insert into maps_final(x_train, y_onset) values(%s, %s)"
         try:
             cur.executemany(sql, [(self.__x_input[i], self.__y_input[i]) for i in range(length)])
             # cur.executemany(sql, self.__x_input)
@@ -90,24 +90,25 @@ class Preprocess:
             wav = wav[wav_start_time:]
             print('>>>>>>>>>>> wav:', wav_file, wav.shape)
 
-            # for onset in onsets:
-            #     if onset > 12800:
-            #     # if onset > 2 * self.__step:
-            #         x_input = wav[onset-1280: onset+1280]
-            #         # rand = random.sample(range(-2*self.__step, -self.__step), 7)
-            #         # x_input = wav[onset+rand[0]: onset+rand[0]+self.__window_size]
-            #         S = librosa.hybrid_cqt(x_input, fmin=librosa.midi_to_hz(min_midi), sr=sr, hop_length=128,
-            #                                 bins_per_octave=4*12,  n_bins=88*4, filter_scale=2)
-            #         plt.figure()
-            #         librosa.display.specshow(S, sr=sr, fmin=librosa.midi_to_hz(min_midi),
-            #                                     fmax=librosa.midi_to_hz(max_midi), y_axis='linear')
-            #         print(x_input.shape, onset)
-            #         plt.figure()
-            #         plt.plot(x_input)
-            #         plt.figure()
-            #         plt.pcolor(mid[onset-1280: onset+1280].T)
-            #         # plt.pcolor(mid[onset+rand[0]: onset+rand[0]+self.__window_size, :].T)
-            #         plt.show()
+            for onset in onsets:
+                if onset > 2 * self.__step:
+                    rand = random.sample(range(-2*self.__step, -self.__step), self.__extra_onset)
+                    for i in range(self.__extra_onset):
+                        self.__x_input.append(wav[onset+rand[i]: onset+rand[i]+self.__window_size].tobytes())
+                        self.__y_input.append(1)
+                    
+                    # S = librosa.hybrid_cqt(x_input, fmin=librosa.midi_to_hz(min_midi), sr=sr, hop_length=128,
+                    #                         bins_per_octave=4*12,  n_bins=88*4, filter_scale=2)
+                    # plt.figure()
+                    # librosa.display.specshow(S, sr=sr, fmin=librosa.midi_to_hz(min_midi),
+                    #                             fmax=librosa.midi_to_hz(max_midi), y_axis='linear')
+                    # print(x_input.shape, onset)
+                    # plt.figure()
+                    # plt.plot(x_input)
+                    # plt.figure()
+                    # plt.pcolor(mid[onset-1280: onset+1280].T)
+                    # plt.pcolor(mid[onset+rand[0]: onset+rand[0]+self.__window_size, :].T)
+                    # plt.show()
 
             for i in np.arange(0, mid_len-self.__window_size+1, self.__step):
                 onoff_detected = 0

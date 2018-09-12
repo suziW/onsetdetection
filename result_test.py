@@ -170,7 +170,7 @@ class Eval:
 
 
 if __name__=='__main__':
-    input_dir = 'data/maps/train/*/'
+    input_dir = 'data/maps/test/*/'
 
     # model_dir = 'model/mapsfix/'
     # meta_name = '0.9390839993416726-23.0-372485.meta'
@@ -178,8 +178,12 @@ if __name__=='__main__':
     # meta_name = '0.9265652068026431-18.0-290106.meta'
     # model_dir = 'model/data2-deep/'
     # meta_name = '0.9452492247025172-26.0-403286.meta'
+    # model_dir = 'model/data4-deep/'
+    # meta_name = '0.9406533798445826-8.0-130976.meta'
+    # model_dir = 'model/data5-deep/'
+    # meta_name = '0.9586843959120817-8.0-102136.meta'
     model_dir = 'model/'
-    meta_name = '0.9406533798445826-8.0-130976.meta'
+    meta_name = '0.9079285032989443-4.0-51068.meta'
 
     i = 0
     for dir in glob.glob(input_dir):
@@ -191,5 +195,5 @@ if __name__=='__main__':
         evaluation.frameF()
         evaluation.precision()
         index = 0
-        evaluation.plot(index, index+1000)
+        # evaluation.plot(index, index+1000)
         print('============================================================================================', dir)

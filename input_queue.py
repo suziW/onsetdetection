@@ -26,7 +26,7 @@ class myThread(threading.Thread):
         # print(next(self.gen()))
         self.enque = True
         self.name = name
-        self.sql = 'select x_train, y_onset from maps_fix where frame in {}'
+        self.sql = 'select x_train, y_onset from maps_final where frame in {}'
         print('THREAD id {} started'.format(self.name))
 
     def run(self):
@@ -93,7 +93,7 @@ if __name__=='__main__':
     start = time.time()
     for i in range(5000):
         data = next(queuegen.train_gen())
-        print('====================================== {}/5000'.format(i), end='\r')
+        print('====================================== {}/500'.format(i), end='\r')
     print('\n time', time.time() - start)
     mid = time.time()
     for i in range(500):

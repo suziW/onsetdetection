@@ -9,25 +9,20 @@ import matplotlib.pyplot as plt
 import os 
 import glob
 
-def plot(dir):
-    mmy_onset = np.memmap(os.path.join(dir, 'y_input.dat'), mode='r')
-    y_onset = mmy_onset
-    del mmy_onset
+a = np.zeros(9).reshape(3, 3)
+b = np.zeros(9).reshape(3, 3)
 
-    y_onset_pad = np.pad(y_onset.reshape(1, -1), ((87, 0), (2, 0)), 'edge')
-    print('............. y_onset_pad:', y_onset_pad.shape)
+b[2, 1] = 1
+b[2, 2] = 1
+a[1, 2] = 1
+a[2, 2] = 1
+print(a)
+print(b)
 
-    mmy_groundtruth = np.memmap(dir + 'y_groundtruth.dat', mode='r')
-    y_groundtruth = mmy_groundtruth.reshape(-1, 88).T
-    del mmy_groundtruth
-    print('............. groundtruth:', y_onset_pad.shape)
-    
-    plt.figure(figsize=(88, 500))
-    plt.pcolor(y_groundtruth[:-2, 0:500]+y_onset_pad[0:-2, 0:500]*10)
-    plt.title('groundtruth onset')
-    plt.show()
+c = (a+b == 2)
+# c[a.any()==1 and b.any()==1] = 1
+# print(c)
+print(a+b==2)
+print(c!=a)
 
-input_dir = 'data/error/*/'
-for dir in glob.glob(input_dir):
-    print(dir)
-    plot(dir)
+print(np.where(b+a>=1))
