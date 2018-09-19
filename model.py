@@ -5,8 +5,7 @@ import numpy as np
 import librosa
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-import seaborn as sns
-import tensorflow as tf 
+import tensorflow as tf
 # import os
 # os.environ['CUDA_VISIBLE_DEVICES']='0'
     
@@ -93,8 +92,8 @@ class Model_deep:
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob') # dropout (keep probability)
         self.training = tf.placeholder(tf.bool, name='training_flag')
 
-        self.kernal_sizes = [440, 110, 110]
-        self.filters = [88, 176, 88]
+        self.kernal_sizes = [110, 110, 110]
+        self.filters = [44, 88, 88]
         self.units = [352, 88]
 
     def conv1d(self, input, kernal_size, filters, stride=1, padding='SAME'):

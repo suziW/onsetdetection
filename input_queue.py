@@ -35,7 +35,7 @@ class myThread(threading.Thread):
             x_train = [np.fromstring(i[0], dtype=np.float32) for i in result]
             y_onset = [np.fromstring(i[1], dtype=np.int8) for i in result]
             # float_list = [np.fromstring(x, dtype=np.float32) for x in x_train]
-            # for i, j in enumerate(float_list): 
+            # for i, j in enumerate(float_list):
             #     if j = []:
             #         y_onset.remove()
             x, y = np.array(x_train), np.array(y_onset)

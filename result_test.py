@@ -176,10 +176,8 @@ class Eval:
 
 if __name__=='__main__':
     input_dir = 'data/maps/test/*/'
-    # model_dir = 'model/data3-deep/'
-    # meta_name = '0.09419999538880328-29.0-263900.meta'
-    model_dir = 'model/'
-    meta_name = '0.14619550708195436-3.0-27300.meta'
+    model_dir = 'model/data3-deep/'
+    meta_name = '0.15781736292916795-4.0-36400.meta'
 
     i = 0
     for dir in glob.glob(input_dir):

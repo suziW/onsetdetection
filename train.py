@@ -8,16 +8,17 @@ import time
 from sklearn import preprocessing
 from model import Model_advance, Model_base, Model_deep
 from dense_net import Model_dense
-import os 
+from lstm import Model_lstm
+import os
 
 window_size = 440
 dirpath = 'model/'
-learning_rate = 0.001
+learning_rate = 0.01
 epochs = 44
 batch_size = 256
 dropout = 0.75
 print_step = 1000
-early_stop = {'best_accuracy': 0.0, 'tolerance':9, 'not_improve_cnt':0}
+early_stop = {'best_accuracy': 0.0, 'tolerance':9, 'not_improve_cnt':0, 'best_loss': 100}
 
 data = InputGen(batch_size=batch_size, split=0.99, thread_num=5)
 step_per_epoch = data.train_steps()
@@ -26,9 +27,9 @@ print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
 ########################################################################################################################################################################################  
 ########################################################################################################################################################################################  
 
-model = Model_deep(window_size)
+model = Model_lstm(window_size)
 threshhole = tf.constant(0.8)
-logits = model.deep_net()
+logits = model.lstm()
 
 with tf.name_scope('optimize_scope'):
     loss_op = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(labels=model.Y, logits=logits))
@@ -48,6 +49,8 @@ with tf.name_scope('accuracy_scope'):
     prediction_op = tf.nn.sigmoid(logits)
     prediction_type = tf.cast(tf.greater(prediction_op, threshhole), tf.float32)
     prediction_location = tf.where(tf.greater(prediction_op, threshhole))
+    groundtruth_location = tf.where(tf.equal(model.Y, 1))
+
     correct_op = tf.cast(tf.equal(prediction_type, model.Y), tf.float32)
     correct_op = tf.equal(tf.reduce_mean(correct_op, axis=1), 1)
     accuracy_op = tf.reduce_mean(tf.cast(correct_op,tf.float32))
@@ -83,40 +86,43 @@ def train_method(train_op, learning_rate=learning_rate):
         sess.run(train_op, feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: dropout, model.training: True})
 
         if step % step_per_epoch == 0:     # one epoch done, evaluate model
-            print('###########################################')
             accuracy = 0
+            loss = 0
             for _ in range(data.val_steps()):
                 val_x, val_y = next(data.val_gen())
-                test_acc, test_prediction = sess.run([accuracy_op, prediction_type], 
+                test_acc, test_loss = sess.run([accuracy_op, loss_op], 
                                 feed_dict={model.X: val_x, model.Y: val_y, model.keep_prob: 1.0, model.training: False})
                 accuracy += test_acc 
+                loss += test_loss
                 # print('---------------test_acc:', test_acc)
                 # print('--------test_prediction:', test_prediction[:31])
                 # print('------------groundtruth:', val_y[:31])
 
             accuracy = accuracy/data.val_steps()
+            loss = loss/data.val_steps()
+            print('###########################################')
             print('epoch ', step/step_per_epoch)
-            print('best_accuracy: ', early_stop['best_accuracy'])
-            print('test accuracy: ', accuracy)
-            if accuracy >= early_stop['best_accuracy']:
-                print('test accuracy improved ')
+            print('best_loss: ', early_stop['best_loss'])
+            print('test loss: ', loss)
+            if loss < early_stop['best_loss']:
+                print('test loss improved ')
                 early_stop['not_improve_cnt'] = 0
-                early_stop['best_accuracy'] = accuracy
-                saver.save(sess, 'model/savers/{}-{}'.format(accuracy, step/step_per_epoch), global_step=step)
+                early_stop['best_loss'] = loss
+                saver.save(sess, 'model/savers/{}-{}'.format(loss, step/step_per_epoch), global_step=step)
                 print('model_saved')
             elif early_stop['not_improve_cnt'] == early_stop['tolerance']:
-                print('early stop! test accuracy cant improve for many epochs')
+                print('early stop! test loss cant improve for many epochs')
                 early_stop['not_improve_cnt'] = 0
                 data.stop()
                 break
             else:
                 early_stop['not_improve_cnt'] += 1
-                print('test accuracy not improving for {}'.format(early_stop['not_improve_cnt']))
-            learning_rate = learning_rate*0.9
+                print('test loss not improving for {}'.format(early_stop['not_improve_cnt']))
+            learning_rate = learning_rate
             print('###########################################')
 
         if step % print_step == 0 or step == 1:
-            train_acc, train_loss, pred, summary = sess.run([accuracy_op, loss_op, prediction_type, merge_summary_op], 
+            train_acc, train_loss, pred, groundtruth, summary = sess.run([accuracy_op, loss_op, prediction_location, groundtruth_location, merge_summary_op], 
                                         feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: 1.0, model.training: False})
             time_dict['det_time'] = time.time() - time_dict['last_time']
             time_dict['last_time'] = time.time()
@@ -127,15 +133,14 @@ def train_method(train_op, learning_rate=learning_rate):
             print("-------------batch Loss: {:.4f}".format(train_loss))
             print("---------------accuracy: {:.4f}".format(train_acc))
             print('--------------time left: {}h {}min'.format(time_dict['remain_time']//3600, (time_dict['remain_time']%3600)//60))
-            print('------------ prediction:', pred[:2], type(pred))
-            print('------------groundtruth:', batch_y[:2])
+            print('------------ prediction:', pred[:19])
+            print('------------groundtruth:', groundtruth[:19])
             print('===========================================================================================')
             summary_writer.add_summary(summary, step)
         # break
     sess.close()
 
-
 # train_method(train_op1)
 # train_method(train_op2)
-train_method(train_op3)              
+train_method(train_op3)
 print("Optimization Finished!")
