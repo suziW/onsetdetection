@@ -34,10 +34,7 @@ class myThread(threading.Thread):
             result = self.__cur.fetchall()
             x_train = [np.fromstring(i[0], dtype=np.float32) for i in result]
             y_onset = [np.fromstring(i[1], dtype=np.int8) for i in result]
-            # float_list = [np.fromstring(x, dtype=np.float32) for x in x_train]
-            # for i, j in enumerate(float_list):
-            #     if j = []:
-            #         y_onset.remove()
+
             x, y = np.array(x_train), np.array(y_onset)
             x = preprocessing.StandardScaler().fit_transform(x.T).T
             self.q.put([x, y])
@@ -50,10 +47,10 @@ class myThread(threading.Thread):
         self.q.get(timeout=1)
 
 class InputGen:
-    def __init__(self, batch_size=256, split=0.99, thread_num=9):
+    def __init__(self, batch_size=256, timesteps=20, split=0.99, thread_num=9):
         print('>>>>>>>>>>>>>>>>>> init InputGen......')
         self.thread_num = thread_num
-        self.data = DataGen(batch_size=batch_size, split=split)
+        self.data = DataGen(batch_size=batch_size, timesteps=timesteps, split=split)
         self.train_queue = queue.Queue(500)
         self.val_queue = queue.Queue(200)
 
@@ -86,17 +83,23 @@ class InputGen:
         return self.data.get_val_len()
 
 if __name__=='__main__':
-    queuegen = InputGen(batch_size=256, thread_num=1)
+    timesteps = 20
+    queuegen = InputGen(batch_size=32, timesteps=timesteps, thread_num=1)
+    print(queuegen.get_param())
     start = time.time()
-    for i in range(5000):
-        data = next(queuegen.train_gen())
-        print('====================================== {}/5000'.format(i), end='\r')
-    print('\n time', time.time() - start)
-    mid = time.time()
-    for i in range(500):
-        data = next(queuegen.train_gen())
-        print('====================================== {}/500'.format(i), end='\r')    
-    print('\n time', time.time() - mid)
-    print(data[1].shape, data[0].shape)
-    print(data)
+    for i in range(6):
+        data = next(queuegen.val_gen())
+        print(data[1].shape, data[0].shape)
+        y = data[1].reshape(-1, timesteps, 88)
+        print(y.shape)
+        for j in y[0]:
+            print(np.where(j>0))
+        print('====================================== {}/500'.format(i), end='\n')
+    # print('\n time', time.time() - start)
+    # mid = time.time()
+    # for i in range(500):
+    #     data = next(queuegen.train_gen())
+    #     print('====================================== {}/500'.format(i), end='\r')    
+    # print('\n time', time.time() - mid)
+
     queuegen.stop()

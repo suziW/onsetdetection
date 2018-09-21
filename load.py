@@ -14,11 +14,11 @@ step = 1        # times of window_size
 window_size = 20       # ms
 
 class DataGen:
-    def __init__(self, dirpath, batch_size=128):
+    def __init__(self, dirpath, batch_size=32, timesteps=20):
         print('>>>>>>>>>>>>>>>>>> getting data from dirpath: ', dirpath)
         self.__framepms = int(sr//1000)
         self.__window_size = window_size*self.__framepms
-        self._batch_size = batch_size
+        self._batch_size = batch_size*timesteps
 
         self._dirx = os.path.join(dirpath, 'polyphonic/x_input.dat')
         self._diry = os.path.join(dirpath, 'polyphonic/y_input.dat')
@@ -26,8 +26,9 @@ class DataGen:
         self.__x_inputs = np.array(0)
         self.__y_inputs = np.array(0)
         self.__readmm()
-        
+
         self.i = 0
+
     def get_info(self):
         return self.get_test_len(), self.test_steps()
     def get_test_len(self):
@@ -37,14 +38,11 @@ class DataGen:
     def test_gen(self):
         while True:
             if (self.i + 1) * self._batch_size > self.__x_inputs.shape[0]:
-                # return rest and then switch files
-                x, y = self.__x_inputs[self.i * self._batch_size:],\
-                        self.__y_inputs[self.i * self._batch_size:]
                 self.i = 0
-            else:
-                x, y = self.__x_inputs[self.i * self._batch_size:(self.i + 1) * self._batch_size],\
-                        self.__y_inputs[self.i * self._batch_size:(self.i + 1) * self._batch_size]
-                self.i += 1
+                
+            x, y = self.__x_inputs[self.i * self._batch_size:(self.i + 1) * self._batch_size],\
+                    self.__y_inputs[self.i * self._batch_size:(self.i + 1) * self._batch_size]
+            self.i += 1
             # y = y.reshape(-1, 1)
             yield x, y
 

@@ -17,53 +17,53 @@ step = 1        # times of window_size
 window_size = 20       # ms
 
 class DataGen:
-    def __init__(self, batch_size=128, split=0.99):
+    def __init__(self, batch_size=32, timesteps=20, split=0.99):
         print('>>>>>>>>>>>>>>>>>> getting data......')
         self.__db = pymysql.connect(host="localhost", user="root", password="1234",
                     db="polyphonic",port=3306)
         self.__cur = self.__db.cursor()
-        self._batch_size = batch_size
         self.__index = mysql.get_index(self.__cur)
 
-        random.shuffle(self.__index)
+        self._batch_size = batch_size
+        self._timesteps = timesteps
 
         self.__split = math.floor(split*len(self.__index))
         self.__train = self.__index[:self.__split]
         self.__val = self.__index[self.__split:]
         print('>>>>>>>>>>>>>>>>>> lens: ', len(self.__index),len(self.__train), len(self.__val))
+
+        self._segment_train = len(self.__train) // self._batch_size
+        self._segment_val = len(self.__val) // self._batch_size
         
-        self.__gen_index_train = 0
-        self.__gen_index_val = 0
+        self._cursor_train = [ offset * self._segment_train for offset in range(self._batch_size)]
+        self._cursor_val = [ offset * self._segment_val for offset in range(self._batch_size)]
 
     def get_train_len(self):
         return len(self.__train)
     def get_val_len(self):
         return len(self.__val)
     def train_steps(self):
-        return math.ceil(len(self.__train)/self._batch_size)
+        return math.ceil(len(self.__train)/(self._batch_size*self._timesteps))
     def val_steps(self):
-        return math.ceil(len(self.__val)/self._batch_size)
+        return math.ceil(len(self.__val)/(self._batch_size*self._timesteps))
 
     def train_gen(self):
         while True:
-            if (self.__gen_index_train + 1) * self._batch_size > len(self.__train):
-                frames = self.__train[self.__gen_index_train * self._batch_size:]
-                self.__gen_index_train = 0
-                random.shuffle(self.__train)
-            else:
-                frames = self.__train[self.__gen_index_train * self._batch_size:(self.__gen_index_train + 1) * self._batch_size]
-                self.__gen_index_train += 1
-            yield frames
+            frames = []
+            for b in range(self._batch_size):
+                for _ in range(self._timesteps):
+                    frames.append(self.__train[self._cursor_train[b]])
+                    self._cursor_train[b] = (self._cursor_train[b] + 1) % len(self.__train)
+            yield frames        # size [batch_size * timesteps]
 
     def val_gen(self):
         while True:
-            if (self.__gen_index_val + 1) * self._batch_size > len(self.__val):
-                frames = self.__val[self.__gen_index_val * self._batch_size:]
-                self.__gen_index_val = 0
-            else:
-                frames = self.__val[self.__gen_index_val * self._batch_size:(self.__gen_index_val + 1) * self._batch_size]
-                self.__gen_index_val += 1
-            yield frames
+            frames = []
+            for b in range(self._batch_size):
+                for _ in range(self._timesteps):
+                    frames.append(self.__val[self._cursor_val[b]])
+                    self._cursor_val[b] = (self._cursor_val[b] + 1) % len(self.__val)
+            yield frames        # size [batch_size * timesteps]
 
     def get_param(self):
         return len(self.__train), len(self.__val), self.train_steps(), self.val_steps()

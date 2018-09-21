@@ -1,17 +1,21 @@
 import numpy as np
+import os
+# os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+# os.environ['CUDA_VISIBLE_DEVICES'] = '-1' #Set GPU device -1
 import tensorflow as tf 
 from tensorflow.contrib import rnn
 
 class Model_lstm:
-    def __init__(self, window_size):
+    def __init__(self, window_size, timesteps=20):
         self.window_size = window_size
         self.X = tf.placeholder(tf.float32, [None, self.window_size], name='x_input')
         self.Y = tf.placeholder(tf.float32, [None, 88], name='y_input')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob') # dropout (keep probability)
         self.training = tf.placeholder(tf.bool, name='training_flag')
 
-        self.num_hidden = 352
+        self.num_hidden = 88
         self.num_classes = 88
+        self.timesteps = timesteps
         self.weights, self.biases = self.init_param()
 
         self.kernal_sizes = [110, 110, 110]
@@ -49,17 +53,22 @@ class Model_lstm:
             flatten = tf.layers.flatten(conv3)
             fc1 = self.dense(flatten, self.units[0], activation=tf.nn.relu)
             fc2 = self.dense(fc1, self.units[1])
-            return fc2
+            return fc1      # shape [batch*timesteps, 88]
 
     def lstm(self):
         with tf.name_scope('lstm_scope'):
-            x = tf.reshape(self.X, shape=[-1, self.window_size, 1])
-            x = tf.unstack(x, self.window_size, 1)
+            x = self.deep_net()
+            x = tf.reshape(x, shape=[-1, self.timesteps, self.units[0]])
+            x = tf.unstack(x, self.timesteps, 1)
             lstm_cell = rnn.BasicLSTMCell(self.num_hidden, forget_bias=1.0)
-            outputs, _ = rnn.static_rnn(lstm_cell, x, dtype=tf.float32)
-            return tf.matmul(outputs[-1], self.weights['out']) + self.biases['out']
+            outputs, _ = rnn.static_rnn(lstm_cell, x, dtype=tf.float32) # len=timesteps   shape=[batch, 88]
+            outputs = tf.concat(values=outputs, axis=0)
+            outputs = tf.reshape(outputs, [self.timesteps, -1, self.num_hidden])
+            outputs =  tf.transpose(outputs, [1, 0, 2])
+            outputs = tf.reshape(outputs, [-1, self.num_hidden])
+            return self.dense(outputs, self.units[1])
 
-    def init_param(self): 
+    def init_param(self):
         weights = {
             'out': tf.Variable(tf.truncated_normal([self.num_hidden, self.num_classes], dtype=tf.float32, name='w-out'))
         }
@@ -69,11 +78,13 @@ class Model_lstm:
         return weights, biases
 
 if __name__=='__main__':
-    model = Model_lstm(12)
+    model = Model_lstm(window_size=5, timesteps=4)
     logits = model.lstm()
 
-    x = np.random.rand(12*3).reshape(3, 12)
+    x = np.zeros(3*4*5).reshape(-1, 5)
+    x[8:] = 1
     print(x)
+    print(x.shape)
 
     tf.summary.histogram('out', logits)
     merge_summary_op = tf.summary.merge_all()
@@ -81,7 +92,9 @@ if __name__=='__main__':
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
         summary_writer = tf.summary.FileWriter('model/logs', tf.get_default_graph())
-        feed_dict = {model.X: x}
+        feed_dict = {model.X: x, model.training: False}
         out, summary = sess.run([logits, merge_summary_op], feed_dict=feed_dict)
         summary_writer.add_summary(summary)
-        print(out)
+        for i in out:
+            print(np.where(i>0))
+        print(out.shape)

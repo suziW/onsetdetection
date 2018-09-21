@@ -11,7 +11,7 @@ import math
 from sklearn import preprocessing
 
 def get_predict(input_dir, model_dir, meta_name):
-    data = load.DataGen(input_dir, batch_size=256)
+    data = load.DataGen(input_dir, batch_size=32)
     print('>>>>>>>>>>>>>>>>>> data info:', data.get_info())
     with tf.Session() as sess:
         saver = tf.train.import_meta_graph(os.path.join(model_dir, 'savers/', meta_name))
@@ -176,8 +176,10 @@ class Eval:
 
 if __name__=='__main__':
     input_dir = 'data/maps/test/*/'
-    model_dir = 'model/data3-deep/'
-    meta_name = '0.15781736292916795-4.0-36400.meta'
+    # model_dir = 'model/data3-deep/'
+    # meta_name = '0.15781736292916795-4.0-36400.meta'
+    model_dir = 'model/'
+    meta_name = '0.06811202931645755-28.0-101920.meta'
 
     i = 0
     for dir in glob.glob(input_dir):

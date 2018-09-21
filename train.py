@@ -1,6 +1,8 @@
 #00!/home/suzi/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import tensorflow as tf 
 from input_queue import InputGen
 import numpy as np 
@@ -9,15 +11,16 @@ from sklearn import preprocessing
 from model import Model_advance, Model_base, Model_deep
 from dense_net import Model_dense
 from lstm import Model_lstm
-import os
+
 
 window_size = 440
 dirpath = 'model/'
-learning_rate = 0.01
+learning_rate = 0.001
+learning_decay = 1
 epochs = 44
-batch_size = 256
+batch_size = 32
 dropout = 0.75
-print_step = 1000
+print_step = 100
 early_stop = {'best_accuracy': 0.0, 'tolerance':9, 'not_improve_cnt':0, 'best_loss': 100}
 
 data = InputGen(batch_size=batch_size, split=0.99, thread_num=5)
@@ -28,7 +31,7 @@ print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
 ########################################################################################################################################################################################  
 
 model = Model_lstm(window_size)
-threshhole = tf.constant(0.8)
+threshhole = tf.constant(0.7)
 logits = model.lstm()
 
 with tf.name_scope('optimize_scope'):
@@ -90,7 +93,7 @@ def train_method(train_op, learning_rate=learning_rate):
             loss = 0
             for _ in range(data.val_steps()):
                 val_x, val_y = next(data.val_gen())
-                test_acc, test_loss = sess.run([accuracy_op, loss_op], 
+                test_acc, test_loss = sess.run([accuracy_op, loss_op],
                                 feed_dict={model.X: val_x, model.Y: val_y, model.keep_prob: 1.0, model.training: False})
                 accuracy += test_acc 
                 loss += test_loss
@@ -118,7 +121,7 @@ def train_method(train_op, learning_rate=learning_rate):
             else:
                 early_stop['not_improve_cnt'] += 1
                 print('test loss not improving for {}'.format(early_stop['not_improve_cnt']))
-            learning_rate = learning_rate
+            learning_rate = learning_rate*learning_decay
             print('###########################################')
 
         if step % print_step == 0 or step == 1:
@@ -133,8 +136,8 @@ def train_method(train_op, learning_rate=learning_rate):
             print("-------------batch Loss: {:.4f}".format(train_loss))
             print("---------------accuracy: {:.4f}".format(train_acc))
             print('--------------time left: {}h {}min'.format(time_dict['remain_time']//3600, (time_dict['remain_time']%3600)//60))
-            print('------------ prediction:', pred[:19])
-            print('------------groundtruth:', groundtruth[:19])
+            print('------------ prediction:', pred[:11].tolist())
+            print('------------groundtruth:', groundtruth[:11].tolist())
             print('===========================================================================================')
             summary_writer.add_summary(summary, step)
         # break
