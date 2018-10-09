@@ -1,8 +1,10 @@
 #00!/home/suzi/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES']='-1'
 import glob
-import tensorflow as tf 
+import tensorflow as tf
 import load
 import numpy as np 
 import os 
@@ -183,7 +185,7 @@ if __name__=='__main__':
     # model_dir = 'model/data5-deep/'
     # meta_name = '0.9586843959120817-8.0-102136.meta'
     model_dir = 'model/'
-    meta_name = '0.9079285032989443-4.0-51068.meta'
+    meta_name = '0.980809691686963-48.0-2451216.meta'
 
     i = 0
     for dir in glob.glob(input_dir):
@@ -191,7 +193,7 @@ if __name__=='__main__':
         # if i !=3: continue
         print('============================================================================================', dir)
         get_predict(dir, model_dir, meta_name)
-        evaluation = Eval(model_dir, dir, threshhole=0.5, onset_tolerance=1)
+        evaluation = Eval(model_dir, dir, threshhole=0.5, onset_tolerance=0)
         evaluation.frameF()
         evaluation.precision()
         index = 0

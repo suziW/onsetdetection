@@ -1,6 +1,8 @@
 #00!/home/suzi/anaconda3/bin/python
 # -*- coding: utf-8 -*-
 
+import os
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 import tensorflow as tf 
 from input_queue import InputGen
 import numpy as np 
@@ -8,27 +10,27 @@ import time
 from sklearn import preprocessing
 from model import Model_advance, Model_base, Model_deep
 from dense_net import Model_dense
-import os 
 
 window_size = 1320
 dirpath = 'model/'
 learning_rate = 0.01
 learning_decay = 0.8
 epochs = 50
-batch_size = 256
-dropout = 0.5
+batch_size = 64
+keep_prob = 1
 print_step = 1000
 early_stop = {'best_accuracy': 0.0, 'tolerance':9, 'not_improve_cnt':0}
+model_save_path = 'savers'
 
 data = InputGen(batch_size=batch_size, split=0.99, thread_num=5)
 step_per_epoch = data.train_steps()
 num_steps = epochs*step_per_epoch
 print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
-######################################################################################################################################################################################## 
+########################################################################################################################################################################################
 ########################################################################################################################################################################################
 
-model = Model_deep(window_size)
-logits = model.deep_net()
+model = Model_dense(window_size)
+logits = model.dense_net()
 
 with tf.name_scope('optimize_scope'):
     loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=model.label, logits=logits))
@@ -46,12 +48,12 @@ with tf.name_scope('optimize_scope'):
 
 with tf.name_scope('accuracy_scope'):
     prediction_op = tf.nn.softmax(logits)
-    prediction_type = tf.argmax(prediction_op, 1) 
+    prediction_type = tf.argmax(prediction_op, 1)
     correct_prediction = tf.equal(tf.argmax(prediction_op, 1),tf.argmax(model.label,1))
     accuracy_op = tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
 
 init = tf.global_variables_initializer()
-saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=3)
+saver = tf.train.Saver(var_list=tf.global_variables(), max_to_keep=5)
 tf.summary.scalar('loss_summary', loss_op)
 tf.summary.scalar('accuracy_summary', accuracy_op)
 for var in tf.trainable_variables():
@@ -68,9 +70,9 @@ time_dict = {'start_time': time.time(), 'det_time': 0, 'last_time':time.time()}
 ########################################################################################################################################################################################
 def train_method(train_op, learning_rate=learning_rate):
     sess = tf.Session()
-    if os.path.exists('model/savers'):
+    if os.path.exists('model/{}'.format(model_save_path)):
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ restore model')
-        saver.restore(sess, tf.train.latest_checkpoint('model/savers/'))
+        saver.restore(sess, tf.train.latest_checkpoint('model/{}/'.format(model_save_path)))
     else:
         sess.run(init)
         print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ init model')
@@ -79,7 +81,7 @@ def train_method(train_op, learning_rate=learning_rate):
     print('@@@@@@@@@@@@@@@@@@@@@@@@@@@ preparing for train')
     for step in range(1, num_steps+1):
         batch_x, batch_y = next(data.train_gen())
-        sess.run(train_op, feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: dropout, model.training: True})
+        sess.run(train_op, feed_dict={model.X: batch_x, model.Y: batch_y, model.keep_prob: keep_prob, model.training: True})
 
         if step % step_per_epoch == 0:     # one epoch done, evaluate model
             print('###########################################')
@@ -101,7 +103,7 @@ def train_method(train_op, learning_rate=learning_rate):
                 print('test accuracy improved ')
                 early_stop['not_improve_cnt'] = 0
                 early_stop['best_accuracy'] = accuracy
-                saver.save(sess, 'model/savers/{}-{}'.format(accuracy, step/step_per_epoch), global_step=step)
+                saver.save(sess, 'model/{}/{}-{}'.format(model_save_path, accuracy, step/step_per_epoch), global_step=step)
                 print('model_saved')
             elif early_stop['not_improve_cnt'] == early_stop['tolerance']:
                 print('early stop! test accuracy cant improve for many epochs')

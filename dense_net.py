@@ -1,3 +1,6 @@
+
+# import os
+# os.environ['CUDA_VISIBLE_DEVICES']='1'
 import tensorflow as tf
 # from tflearn.layers.conv import global_avg_pool
 from tensorflow.examples.tutorials.mnist import input_data
@@ -16,8 +19,8 @@ def Global_Average_Pooling(x, stride=1):
     pool_size = [width, height]
     return tf.layers.average_pooling2d(inputs=x, pool_size=pool_size, strides=stride, name='global_Average_Pooling') # The stride value does not matter
 
-def Drop_out(x, rate, training) :
-    return tf.layers.dropout(inputs=x, rate=rate, training=training)
+def Drop_out(x, keep_prob, training) :
+    return tf.layers.dropout(inputs=x, rate=1-keep_prob, training=training)
 
 def Relu(x):
     return tf.nn.relu(x)
@@ -38,9 +41,9 @@ def Linear(x) :
 
 
 class Model_dense:
-    def __init__(self, window_size, filters=32):
-        self.window_size = int(window_size/3)
-        self.X = tf.placeholder(tf.float32, [None, 3*self.window_size], name='x_input')
+    def __init__(self, window_size, filters=44):
+        self.window_size = window_size
+        self.X = tf.placeholder(tf.float32, [None, self.window_size], name='x_input')
         self.Y = tf.placeholder(tf.int32, [None], name='y_input')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob') # dropout (keep probability)
         self.training = tf.placeholder(tf.bool, name='training_flag')
@@ -56,12 +59,12 @@ class Model_dense:
             x = tf.layers.batch_normalization(x, training=self.training, name=scope+'_batchnorm1')
             x = Relu(x)
             x = conv_layer(x, filter=4 * self.filters, kernel=[1,1], layer_name=scope+'_conv1')
-            x = Drop_out(x, rate=self.keep_prob, training=self.training)
+            x = Drop_out(x, keep_prob=self.keep_prob, training=self.training)
 
             x = tf.layers.batch_normalization(x, training=self.training, name=scope+'_batchnorm2')
             x = Relu(x)
-            x = conv_layer(x, filter=self.filters, kernel=[1, 14], layer_name=scope+'_conv2')
-            x = Drop_out(x, rate=self.keep_prob, training=self.training)
+            x = conv_layer(x, filter=self.filters, kernel=[1, 22], layer_name=scope+'_conv2')
+            x = Drop_out(x, keep_prob=self.keep_prob, training=self.training)
             # print(x)
             return x
 
@@ -70,7 +73,7 @@ class Model_dense:
             x = tf.layers.batch_normalization(x, training=self.training, name=scope+'_batchnorm')
             x = Relu(x)
             x = conv_layer(x, filter=self.filters, kernel=[1,1], layer_name=scope+'_conv1')
-            x = Drop_out(x, rate=self.keep_prob, training=self.training)
+            x = Drop_out(x, keep_prob=self.keep_prob, training=self.training)
             x = Average_pooling(x, pool_size=[1,2], stride=2)
             return x
 
@@ -93,12 +96,12 @@ class Model_dense:
     def dense_net(self):
         with tf.name_scope('dense_net'):
             # input
-            x = tf.reshape(self.X, shape=[-1, 1, 3, self.window_size])
-            x = tf.transpose(x, perm=[0, 1, 3, 2]) # (batch_size, 1, 440, 3)
+            x = tf.reshape(self.X, shape=[-1, 1, self.window_size, 1])
+            # x = tf.transpose(x, perm=[0, 1, 3, 2]) # (batch_size, 1, 440, 3)
 
-            x = conv_layer(x, filter=2 * self.filters, kernel=[1,self.window_size], stride=2, layer_name='conv0')
+            x = conv_layer(x, filter=2 * self.filters, kernel=[1,22], stride=2, layer_name='conv0')
             x = Max_Pooling(x, pool_size=[1,2], stride=2)   # windowsize/4 = 110
-            
+
             # dense block 
             x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[0], layer_name='block1')
             x = self.transition_layer(x, scope='trans1')    # windowsize/8 = 55
@@ -108,7 +111,7 @@ class Model_dense:
 
             x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[2], layer_name='block3')
             x = self.transition_layer(x, scope='trans3')    # windowsize/32 = 14
-            
+
             x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[3], layer_name='block4')
 
             # output
@@ -134,9 +137,9 @@ if __name__=='__main__':
         sess.run(tf.global_variables_initializer())
         train_feed_dict = {
             model.X: inputx,
-            model.Y: inputy, 
+            model.Y: inputy,
             model.training : True,
-            model.keep_prob : 0.5
+            model.keep_prob : 0.0
         }
         logit, label = sess.run([logits, model.label], feed_dict=train_feed_dict)
         print('==================================')

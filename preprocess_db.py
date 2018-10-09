@@ -97,8 +97,11 @@ class Preprocess:
                         self.__x_input.append(wav[onset+rand[i]: onset+rand[i]+self.__window_size].tobytes())
                         self.__y_input.append(1)
                     
+                    # cqt 
+                    # rand = int(-1.5 * self.__step)
+                    # x_input = wav[onset+rand: onset+rand+self.__window_size]
                     # S = librosa.hybrid_cqt(x_input, fmin=librosa.midi_to_hz(min_midi), sr=sr, hop_length=128,
-                    #                         bins_per_octave=4*12,  n_bins=88*4, filter_scale=2)
+                    #                         bins_per_octave=4*12,  n_bins=88*4, filter_scale=1)
                     # plt.figure()
                     # librosa.display.specshow(S, sr=sr, fmin=librosa.midi_to_hz(min_midi),
                     #                             fmax=librosa.midi_to_hz(max_midi), y_axis='linear')
@@ -107,7 +110,7 @@ class Preprocess:
                     # plt.plot(x_input)
                     # plt.figure()
                     # plt.pcolor(mid[onset-1280: onset+1280].T)
-                    # plt.pcolor(mid[onset+rand[0]: onset+rand[0]+self.__window_size, :].T)
+                    # plt.pcolor(mid[onset+rand: onset+rand+self.__window_size, :].T)
                     # plt.show()
 
             for i in np.arange(0, mid_len-self.__window_size+1, self.__step):
@@ -121,7 +124,7 @@ class Preprocess:
                 self.__y_input.append(onoff_detected) 
                 self.__x_input.append(wav[i:i+self.__window_size].tobytes())
             # break
-            self.__save()
+            # self.__save()
 
     def __wavfile2np(self):
         alignIndex = 0
