@@ -1,5 +1,6 @@
-#!/usr/bin/env python
+#00!/home/suzi/anaconda3/bin/python
 # -*- coding: utf-8 -*-
+
 import pymysql
 from sklearn import preprocessing
 import mysql
@@ -38,11 +39,11 @@ class myThread(threading.Thread):
             x_train = [np.fromstring(i[0], dtype=np.float32) for i in result]
             y_onset = [i[1] for i in result]
             # float_list = [np.fromstring(x, dtype=np.float32) for x in x_train]
-            # for i, j in enumerate(float_list): 
+            # for i, j in enumerate(float_list):
             #     if j = []:
             #         y_onset.remove()
             x, y = np.array(x_train), np.array(y_onset)
-            x = preprocessing.StandardScaler().fit_transform(x.T).T 
+            x = preprocessing.StandardScaler().fit_transform(x.T).T
             self.q.put([x, y])
 
         print('THREAD id {} stoped'.format(self.name))
@@ -58,15 +59,18 @@ class InputGen:
         self.thread_num = thread_num
         self.data = DataGen(batch_size=batch_size, split=split)
         self.train_queue = queue.Queue(500)
-        self.val_queue = queue.Queue(200)
+        self.val_queue = queue.Queue(500)
 
         self.train_enqueue_thread = []
         for i in range(self.thread_num):
             self.train_enqueue_thread.append(myThread('train-{}'.format(i), self.train_queue, self.data.train_gen))
             self.train_enqueue_thread[i].start()
 
-        self.val_enqueue_thread = myThread('val', self.val_queue, self.data.val_gen)
-        self.val_enqueue_thread.start()
+        self.val_enqueue_thread1 = myThread('val-1', self.val_queue, self.data.val_gen)
+        self.val_enqueue_thread1.start()
+        self.val_enqueue_thread2 = myThread('val-2', self.val_queue, self.data.val_gen)
+        self.val_enqueue_thread2.start()
+
         print('>>>>>>>>>>>>>>>>>> init InputGen done.')
 
     def val_gen(self):
@@ -76,7 +80,8 @@ class InputGen:
         # print('>>>>>>>>>>>>>>>>>> train queue:', self.train_queue.qsize())
         yield self.train_queue.get()
     def stop(self):
-        self.val_enqueue_thread.stop()
+        self.val_enqueue_thread1.stop()
+        self.val_enqueue_thread2.stop()
         for i in range(self.thread_num):
             self.train_enqueue_thread[i].stop()
     def train_steps(self):
@@ -89,10 +94,10 @@ class InputGen:
         return self.data.get_val_len()
 
 if __name__=='__main__':
-    queuegen = InputGen(batch_size=256, thread_num=1)
+    queuegen = InputGen(batch_size=200, thread_num=5)
     start = time.time()
-    for i in range(5000):
-        data = next(queuegen.train_gen())
+    for i in range(500):
+        data = next(queuegen.val_gen())
         print('====================================== {}/500'.format(i), end='\r')
     print('\n time', time.time() - start)
     mid = time.time()
