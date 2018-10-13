@@ -65,8 +65,10 @@ class InputGen:
             self.train_enqueue_thread.append(myThread('train-{}'.format(i), self.train_queue, self.data.train_gen))
             self.train_enqueue_thread[i].start()
 
-        self.val_enqueue_thread = myThread('val', self.val_queue, self.data.val_gen)
-        self.val_enqueue_thread.start()
+        self.val_enqueue_thread1 = myThread('val-1', self.val_queue, self.data.val_gen)
+        self.val_enqueue_thread2 = myThread('val-2', self.val_queue, self.data.val_gen)
+        self.val_enqueue_thread1.start()
+        self.val_enqueue_thread2.start()
         print('>>>>>>>>>>>>>>>>>> init InputGen done.')
 
     def val_gen(self):
@@ -76,7 +78,8 @@ class InputGen:
         # print('>>>>>>>>>>>>>>>>>> train queue:', self.train_queue.qsize())
         yield self.train_queue.get()
     def stop(self):
-        self.val_enqueue_thread.stop()
+        self.val_enqueue_thread1.stop()
+        self.val_enqueue_thread2.stop()
         for i in range(self.thread_num):
             self.train_enqueue_thread[i].stop()
     def train_steps(self):
@@ -91,8 +94,8 @@ class InputGen:
 if __name__=='__main__':
     queuegen = InputGen(batch_size=256, thread_num=1)
     start = time.time()
-    for i in range(5000):
-        data = next(queuegen.train_gen())
+    for i in range(500):
+        data = next(queuegen.val_gen())
         print('====================================== {}/500'.format(i), end='\r')
     print('\n time', time.time() - start)
     mid = time.time()

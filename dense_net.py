@@ -1,5 +1,5 @@
 
-# import os
+import os
 # os.environ['CUDA_VISIBLE_DEVICES']='1'
 import tensorflow as tf
 # from tflearn.layers.conv import global_avg_pool
@@ -8,9 +8,9 @@ from tensorflow.contrib.layers import batch_norm, flatten
 from tensorflow.contrib.framework import arg_scope
 import numpy as np
 
-def conv_layer(input, filter, kernel, stride=1, layer_name="conv"):
+def conv_layer(input, filter, kernel, stride=1, layer_name="conv", padding='SAME'):
     with tf.name_scope(layer_name):
-        network = tf.layers.conv2d(inputs=input, filters=filter, kernel_size=kernel, strides=stride, padding='SAME')
+        network = tf.layers.conv2d(inputs=input, filters=filter, kernel_size=kernel, strides=stride, padding=padding)
         return network
 
 def Global_Average_Pooling(x, stride=1):
@@ -100,11 +100,39 @@ class Model_dense:
             # x = tf.transpose(x, perm=[0, 1, 3, 2]) # (batch_size, 1, 440, 3)
 
             x = conv_layer(x, filter=2 * self.filters, kernel=[1,22], stride=2, layer_name='conv0')
+            print(x)
             x = Max_Pooling(x, pool_size=[1,2], stride=2)   # windowsize/4 = 110
+            print(x)
 
             # dense block 
             x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[0], layer_name='block1')
+            print(x)
+
+
+            # x = self.transition_layer(x, scope='trans1')    # windowsize/8 = 55
+            # x = tf.layers.batch_normalization(x, training=self.training, name='batchnorm_final1')
+            # x = Relu(x)
+
+            # print(int(x.get_shape()[2]), int(x.get_shape()[3]))
+            # x = conv_layer(x, filter=352, kernel=[1, int(x.get_shape()[2])], layer_name='self_defined_final', padding='VALID')
+            # x = tf.layers.batch_normalization(x, training=self.training, name='batchnorm_final2')
+            # x = Relu(x)
+            # print(x)
+            # x = conv_layer(x, filter=88, kernel=[1, 1], layer_name='self_defined_final2')
+            # x = tf.layers.batch_normalization(x, training=self.training, name='batchnorm_final3')
+            # x = Relu(x)
+            # print(x)
+            # x = conv_layer(x, filter=2, kernel=[1, 1], layer_name='self_defined_final3')
+            # x = tf.layers.batch_normalization(x, training=self.training, name='batchnorm_final4')
+            # x = Relu(x)
+            # print(x)
+            # x = flatten(x)
+            # print(x)
+            # return(x)
+
+
             x = self.transition_layer(x, scope='trans1')    # windowsize/8 = 55
+            print(x)
 
             x = self.dense_block(input_x=x, nb_layers=self.nb_blocks[1], layer_name='block2')
             x = self.transition_layer(x, scope='trans2')    # windowsize/16 = 28

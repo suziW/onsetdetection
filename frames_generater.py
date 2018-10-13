@@ -24,7 +24,7 @@ class DataGen:
         self.__cur = self.__db.cursor()
         self._batch_size = batch_size
         self.__zeros, self.__ones = mysql.get_index(self.__cur)
-        print(len(self.__zeros), len(self.__ones))
+        print('>>>>>>>>>>>>>>>>>> ones zeros', len(self.__zeros), len(self.__ones))
 
         # print('>>>>>>>>>>>>>>>>>> shufflling.....')       
         random.shuffle(self.__zeros)

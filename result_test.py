@@ -2,12 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import os
-os.environ['CUDA_VISIBLE_DEVICES']='-1'
+os.environ['CUDA_VISIBLE_DEVICES']='1'
 import glob
 import tensorflow as tf
 import load
-import numpy as np 
-import os 
+import numpy as np
+import os
 import matplotlib.pyplot as plt
 import math
 from sklearn import preprocessing
@@ -31,7 +31,7 @@ def get_predict(input_dir, model_dir, meta_name):
         y_groundtruth = []
         for i in range(data.train_steps()):
             batch_x , batch_y   = next(data.train_gen())
-            batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T 
+            batch_x = preprocessing.StandardScaler().fit_transform(batch_x.T).T
             print('predicting.........................................{}/{}.......'.format(i, data.train_steps()), end='\r')
             batch_pred = sess.run(prediction, feed_dict={X: batch_x , Y: batch_y , keep_prob: 1, training: False})
             y_prediction.append(batch_pred)
@@ -162,7 +162,7 @@ class Eval:
     def frameF(self):
         precision = self.frameP()
         recall = self.frameR()
-        print('-----------------f measure is: ', precision*recall*2/(precision+recall))
+        print('|||||||||||||||||||f measure is: ', precision*recall*2/(precision+recall))
     def precision(self):
         true_cnt = 0
         for i in range(len(self.y_onset)):
@@ -185,17 +185,19 @@ if __name__=='__main__':
     # model_dir = 'model/data5-deep/'
     # meta_name = '0.9586843959120817-8.0-102136.meta'
     model_dir = 'model/'
-    meta_name = '0.980809691686963-48.0-2451216.meta'
+    meta_name = '0.9560479669477562-4.0-165064.meta'
 
     i = 0
     for dir in glob.glob(input_dir):
         i += 1
-        # if i !=3: continue
+        if i==4 or i==6: continue
+        # if i !=9: continue
         print('============================================================================================', dir)
         get_predict(dir, model_dir, meta_name)
-        evaluation = Eval(model_dir, dir, threshhole=0.5, onset_tolerance=0)
+        evaluation = Eval(model_dir, dir, threshhole=0.8, onset_tolerance=0)
         evaluation.frameF()
         evaluation.precision()
-        index = 0
-        # evaluation.plot(index, index+1000)
+        index = 2000
+        evaluation.plot(index, index+1000)
         print('============================================================================================', dir)
+    print()

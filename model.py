@@ -140,9 +140,9 @@ class Model_deep:
             # drop = tf.layers.dropout(fc1, 1-self.keep_prob)
             # fc2 = self.dense(drop, self.units[1])
             # return fc2
-            conv4 = self.conv1d(conv3, int(conv3.get_shape()[1]), 1000, padding='VALID', pooling=False)
+            conv4 = self.conv1d(conv3, int(conv3.get_shape()[1]), 1000 , padding='VALID', pooling=False)
             print(conv4)
-            conv5 = self.conv1d(conv4, 1, 352, padding='VALID', pooling=False)
+            conv5 = self.conv1d(conv4, 1, 88, padding='VALID', pooling=False)
             conv6 = self.conv1d(conv5, 1, 2, padding='VALID', pooling=False)
             flatten = tf.layers.flatten(conv6)
             print(flatten)
