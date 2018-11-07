@@ -48,7 +48,7 @@ class Parse_note:
             ajust_notes.append(note)
             time = 1
             if index==len(notes)-1:     # add end
-                for i in range(self.end-index):
+                for i in range(self.end-notes[index][0]-1):
                     ajust_notes.append((note[0]+time, note[1]))
                     time = time+1
                 break
@@ -67,6 +67,7 @@ class Parse_note:
 
     def plot(self):
         plot_notes = self.get_note()
+        print('===================== shapes', plot_notes.shape)
         fig = plt.figure(figsize=(30, 20), dpi=100)
         plt.pcolormesh(plot_notes.T, cmap='jet')
         xLocator = MultipleLocator(50)

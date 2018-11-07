@@ -122,24 +122,27 @@ class Eval:
                             groundtruth note onst
         offset_tolerance: same as above discribe
     """
-    def __init__(self, model_dir, input_dir, meta_name, discard=50, threshhole=0.5,
+    def __init__(self, model_dir, wav_dir, note_dir, meta_name, discard=50, threshhole=0.5,
                 sr=22050,  onset_tolerance=1, offset_tolerance=100):
         self.__threshhole = threshhole
         self.__onset_tolerance = onset_tolerance
         self.sr = sr
-        self.input_dir = input_dir
+        self.wav_dir = wav_dir
         self.model_dir = model_dir
         self.meta_name = meta_name
 
         self.wav_prediction()
         self.y_pred_prob = self.y_pred.copy()
         self.__prob2onehot()
+        self.notes = Parse_note(note_dir, self.x_wav.shape[0]).get_note()
+        assert(self.x_wav.shape[0] == self.y_pred.shape[0], self.notes.shape[0])
         self.y_pred_pad = np.pad(self.y_pred.reshape(1, -1), ((87, 0), (0, 0)), 'maximum')
-        assert(self.x_wav.shape[0] == self.y_pred.shape[0])
+        self.notes = self.notes.T
+
 
     def wav_prediction(self):
-        wav = Preprocess(self.input_dir)
-        prediction = Predict(self.input_dir, self.model_dir, self.meta_name)
+        wav = Preprocess(self.wav_dir)
+        prediction = Predict(self.wav_dir, self.model_dir, self.meta_name)
         self.x_wav = wav.get_wav()[:, 440:880]
         self.y_pred = prediction.get_prediction()
 
@@ -148,7 +151,7 @@ class Eval:
         self.y_pred[self.y_pred<self.__threshhole] = 0
 
     def analysis(self, save_dir):
-        wav_name = os.path.splitext(os.path.split(self.input_dir)[1])[0]
+        wav_name = os.path.splitext(os.path.split(self.wav_dir)[1])[0]
         fig = plt.figure(figsize=(50, 10), dpi=100)
         fig.tight_layout()
 
@@ -162,7 +165,7 @@ class Eval:
 
 
         fig.add_subplot(413)
-        plt.pcolormesh(self.y_pred_pad, cmap='jet')
+        plt.pcolormesh(self.y_pred_pad+self.notes*20, cmap='jet')
         fig.add_subplot(414)
         plt.xlim(-0.5, self.x_wav.shape[0]-0.5)
         plt.plot(range(self.x_wav.shape[0]), self.y_pred_prob, 'ro-')   
@@ -189,12 +192,12 @@ if __name__=='__main__':
 
     # note_dir = 'txt/wave_test_0.9_0.2_max.txt'
     # note_dir = 'txt/wave_test_0.9_0.51_max.txt'
-    # note_dir = 'txt/wave_test_0.9_0.6_no_max.txt'
+    note_dir = 'txt/wave_test_0.9_0.6_no_max.txt'
     # note_dir = 'txt/wave_test_0.9_0.7_max.txt'
     # note_dir = 'txt/wave_test_0.9_0.6_no_max_all.txt'
     # note_dir = 'txt/wave_test_0.9_0.8_no_max_all.txt'
     # note_dir = 'txt/wave_test_0.9_0.9_no_max_all.txt'
-    note_dir = 'txt/wave_test_0.9_0.99_no_max_all.txt'
+    # note_dir = 'txt/wave_test_0.9_0.99_no_max_all.txt'
 
     # model_dir = 'model/mapsfix/'
     # meta_name = '0.9390839993416726-23.0-372485.meta'
@@ -211,5 +214,5 @@ if __name__=='__main__':
     # model_dir = 'model/'
     # meta_name = '0.9706520959157352-11.0-561737.meta'
 
-    evaluation = Eval(model_dir, wav_dir, meta_name, threshhole=0.8, onset_tolerance=1)
+    evaluation = Eval(model_dir, wav_dir, note_dir, meta_name, threshhole=0.8, onset_tolerance=1)
     evaluation.analysis(save_dir)
