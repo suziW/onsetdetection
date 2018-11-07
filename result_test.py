@@ -182,10 +182,12 @@ if __name__=='__main__':
     # meta_name = '0.9452492247025172-26.0-403286.meta'
     # model_dir = 'model/data4-deep/'
     # meta_name = '0.9406533798445826-8.0-130976.meta'
-    # model_dir = 'model/data5-deep/'
-    # meta_name = '0.9586843959120817-8.0-102136.meta'
-    model_dir = 'model/'
-    meta_name = '0.9560479669477562-4.0-165064.meta'
+    model_dir = 'model/data5-deep/'
+    meta_name = '0.9586843959120817-8.0-102136.meta'
+    # model_dir = 'model/deep5-maps-halfstop/'
+    # meta_name = '0.9607445988082146-6.0-306402.meta'
+    # model_dir = 'model/'
+    # meta_name = '0.9715669526025007-17.0-701522.meta'
 
     i = 0
     for dir in glob.glob(input_dir):
@@ -194,10 +196,10 @@ if __name__=='__main__':
         # if i !=9: continue
         print('============================================================================================', dir)
         get_predict(dir, model_dir, meta_name)
-        evaluation = Eval(model_dir, dir, threshhole=0.8, onset_tolerance=0)
+        evaluation = Eval(model_dir, dir, threshhole=0.8, onset_tolerance=1)
         evaluation.frameF()
         evaluation.precision()
         index = 2000
-        evaluation.plot(index, index+1000)
+        # evaluation.plot(index, index+1000)
         print('============================================================================================', dir)
     print()

@@ -88,18 +88,22 @@ class Model_advance:
                 self.window_weights.append(window_weight)
 
 class Model_deep:
-    def __init__(self, window_size):
+    def __init__(self, window_size, n_bins, cqt_num):
         self.window_size = window_size
-        self.X = tf.placeholder(tf.float32, [None, self.window_size], name='x_input')
-        self.Y = tf.placeholder(tf.int32, [None], name='y_input')
+        self.n_bins = n_bins
+        self.cqt_num = cqt_num 
+        self.note_range = 88
+
+        self.X = tf.placeholder(tf.float32, [None, self.window_size, self.n_bins, self.cqt_num], name='x_input')
+        self.Y = tf.placeholder(tf.int32, [None, self.note_range], name='y_input')
         self.keep_prob = tf.placeholder(tf.float32, name='keep_prob') # dropout (keep probability)
         self.training = tf.placeholder(tf.bool, name='training_flag')
 
-        self.label = tf.one_hot(self.Y, 2, 1.0, 0.0) 
+        # self.label = tf.one_hot(self.Y, 2, 1.0, 0.0) 
 
-        self.kernal_sizes = [110, 110, 110]
+        self.kernel_sizes = [[2, 12*3], [2, 12], [3, 88]]
         self.filters = [44, 88, 88]
-        self.units = [352, 2]
+        self.units = [3*88, 88, 88]
 
     def conv1d(self, input, kernal_size, filters, stride=1, padding='SAME', pooling=True):
         with tf.name_scope('convpool_scope'):
@@ -116,8 +120,8 @@ class Model_deep:
     def dense(self, input, units, activation=None):
         with tf.name_scope('dense_scope'):
             input_dim = int(input.get_shape()[1])
-            w = tf.Variable(tf.truncated_normal([input_dim, units], dtype=tf.float32), name='dense_weight')
-            b = tf.Variable(tf.zeros([units], dtype=tf.float32), name='dense_biase')
+            w = tf.Variable(tf.truncated_normal([input_dim, units], dtype=tf.float32), name='dense_weight')/10
+            b = tf.Variable(tf.zeros([units], dtype=tf.float32), name='dense_biase')/10
             dense_mid = tf.add(tf.matmul(input, w), b)
             if activation == None:
                 return dense_mid
@@ -127,26 +131,29 @@ class Model_deep:
 
     def deep_net(self):
         with tf.name_scope('deep_net'):
-            x = tf.reshape(self.X, shape=[-1, self.window_size, 1])
-            # x = tf.transpose(x, perm=[0, 2, 1]) # (batch_size, 440, 3)
-            conv1 = self.conv1d(x, self.kernal_sizes[0], self.filters[0], stride=1) # kernal: (44, 3, 32) maxpool: 2
-            print(conv1)
-            conv2 = self.conv1d(conv1, self.kernal_sizes[1], self.filters[1], stride=1) # kernal: (11, 32, 64) maxpool:2
-            print(conv2)
-            conv3 = self.conv1d(conv2, self.kernal_sizes[2], self.filters[2], stride=1) # kernal: (4, 64, 64) maxpool:2
-            print(conv3)
-            # flatten = tf.layers.flatten(conv3)
-            # fc1 = self.dense(flatten, self.units[0], activation=tf.nn.relu)
-            # drop = tf.layers.dropout(fc1, 1-self.keep_prob)
-            # fc2 = self.dense(drop, self.units[1])
-            # return fc2
-            conv4 = self.conv1d(conv3, int(conv3.get_shape()[1]), 1000 , padding='VALID', pooling=False)
-            print(conv4)
-            conv5 = self.conv1d(conv4, 1, 88, padding='VALID', pooling=False)
-            conv6 = self.conv1d(conv5, 1, 2, padding='VALID', pooling=False)
-            flatten = tf.layers.flatten(conv6)
-            print(flatten)
-            return flatten
+            x = self.X
+            # x = tf.layers.conv2d(inputs=x, filters=self.filters[0], kernel_size=self.kernel_sizes[0], strides=(2, 3), padding='same')
+            # x = tf.layers.batch_normalization(x, training=self.training)
+            # print(x)
+            # x = tf.layers.conv2d(inputs=x, filters=self.filters[1], kernel_size=self.kernel_sizes[1], strides=(2, 1), padding='same')
+            # x = tf.layers.batch_normalization(x, training=self.training)
+            # print(x)
+            # x = tf.layers.conv2d(inputs=x, filters=self.filters[2], kernel_size=self.kernel_sizes[2], strides=(1, 1), padding='valid')
+            # x = tf.layers.batch_normalization(x, training=self.training)
+            # print(x)
+            # x = tf.layers.flatten(x)
+            # x = tf.layers.batch_normalization(x, training=self.training)
+            # print(x)
+            # return x
+            x = tf.layers.flatten(x)
+            print(x)
+            x = self.dense(x, units[0], activation=tf.nn.relu)
+            print(x)
+            x = self.dense(x, units[1], activation=tf.nn.relu)
+            print(x)
+            x = self.dense(x, units[2])
+            print(x)
+            return x
 
     def init_weights(self): 
         pass
@@ -203,7 +210,7 @@ class Model_base:
 
 
 if __name__=='__main__':
-    model = Model_deep(1320)
+    model = Model_deep(12, 88*3, 3)
     out_op = model.deep_net()
     sess = tf.Session()
     # tf.summary.histogram('out', out_op)

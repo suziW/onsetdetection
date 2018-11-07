@@ -9,20 +9,12 @@ import matplotlib.pyplot as plt
 import os 
 import glob
 
-a = np.zeros(9).reshape(3, 3)
-b = np.zeros(9).reshape(3, 3)
+x1 = np.ones(342*12*3*88*3, dtype=np.int8).reshape(-1, 12, 3*88, 3)
+x2 = np.ones(542*12*3*88*3, dtype=np.int8).reshape(-1, 12, 3*88, 3)
+print(x1.shape, x2.shape)
 
-b[2, 1] = 1
-b[2, 2] = 1
-a[1, 2] = 1
-a[2, 2] = 1
-print(a)
-print(b)
-
-c = (a+b == 2)
-# c[a.any()==1 and b.any()==1] = 1
-# print(c)
-print(a+b==2)
-print(c!=a)
-
-print(np.where(b+a>=1))
+x = []
+x.append(x1)
+x.append(x2)
+x = np.concatenate(x)
+print(x.shape)

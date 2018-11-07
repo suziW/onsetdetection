@@ -68,76 +68,64 @@ class Preprocess:
 
     def __get_aligned_xy(self):
         for mid_file in self.__midfiles:
+            print('>>>>>>>>>>>>>>>>>>>>>>>> file', mid_file)
             wav_file = os.path.splitext(mid_file)[0] + '.wav'
             wav_name = os.path.split(wav_file)[1]
-            # get mid
-            midobj = pretty_midi.PrettyMIDI(mid_file)     # loadfile
-            mid = midobj.get_piano_roll(fs=sr)[min_midi:max_midi + 1].T #get_piano_roll ----> [notes, samples]
-            onsets = (midobj.get_onsets()*sr).astype(int)
-            # mid[mid>0] = 1
-            for i, j in enumerate(np.sum(mid, axis=1)):
-                if j>0.1:
-                    mid = mid[i:]
-                    onsets = np.unique(onsets - i).tolist()
-                    break
-            mid_len = mid.shape[0]
-            print('>>>>>>>>>>> mid:', mid_file, mid.shape)
-            # del mid 
+            self.__x_input = self.__wavfile2np(wav_file)
 
-            # get wav
-            wav, _ = librosa.load(wav_file, sr)
-            wav_start_time = int(wav_start_times[wav_name]*sr)
-            wav = wav[wav_start_time:]
-            print('>>>>>>>>>>> wav:', wav_file, wav.shape)
+            times = librosa.frames_to_time(np.arange(self.__x_input.shape[0]), sr=sr, hop_length=hop_length)    # -wav_start_times[wav_name]
+            print('>>>>>>>>>>>>>>>>>>>>>>>> x_input.shape', self.__x_input.shape)
+            self.__y_input = self.__midfile2np(mid_file, times)
+            print('>>>>>>>>>>>>>>>>>>>>>>>> y_input.shape', self.__y_input.shape)
 
-            for onset in onsets:
-                if onset > 2 * self.__step:
-                    rand = random.sample(range(-2*self.__step, -self.__step), self.__extra_onset)
-                    for i in range(self.__extra_onset):
-                        self.__x_input.append(wav[onset+rand[i]: onset+rand[i]+self.__window_size].tobytes())
-                        self.__y_input.append(1)
-                    
-                    # cqt 
-                    # rand = int(-1.5 * self.__step)
-                    # x_input = wav[onset+rand: onset+rand+self.__window_size]
-                    # S = librosa.hybrid_cqt(x_input, fmin=librosa.midi_to_hz(min_midi), sr=sr, hop_length=128,
-                    #                         bins_per_octave=4*12,  n_bins=88*4, filter_scale=1)
-                    # plt.figure()
-                    # librosa.display.specshow(S, sr=sr, fmin=librosa.midi_to_hz(min_midi),
-                    #                             fmax=librosa.midi_to_hz(max_midi), y_axis='linear')
-                    # print(x_input.shape, onset)
-                    # plt.figure()
-                    # plt.plot(x_input)
-                    # plt.figure()
-                    # plt.pcolor(mid[onset-1280: onset+1280].T)
-                    # plt.pcolor(mid[onset+rand: onset+rand+self.__window_size, :].T)
-                    # plt.show()
 
-            for i in np.arange(0, mid_len-self.__window_size+1, self.__step):
-                onoff_detected = 0
-                for onset in onsets[:5]:
-                    if onset < (i + self.__step*2):
-                        onsets.remove(onset)
-                        if onset >= i + self.__step:
-                            onoff_detected = 1
 
-                self.__y_input.append(onoff_detected) 
-                self.__x_input.append(wav[i:i+self.__window_size].tobytes())
-            # break
-            # self.__save()
+    def __midfile2np(self, mid_file, times):
+        midobj = pretty_midi.PrettyMIDI(mid_file)     # loadfile
+        piano_roll = midobj.get_piano_roll(fs=sr, times=times)[min_midi:max_midi + 1].T
+        piano_roll[piano_roll > 0] = 1
+        return piano_roll
 
-    def __wavfile2np(self):
-        alignIndex = 0
-        for file in self.__wavfiles:
-            wav, _ = librosa.load(file, sr)
-            print('>>>>>>>>>> wav: ', file, wav.shape)
-            for i in np.arange(0, len(wav)-self.__window_size+1, self.__step):
-                x_input = wav[i:i+self.__window_size].tobytes()
-                self.__x_input.append(x_input)
-                # break
-            self.__x_input = self.__x_input[:self.__align_list[alignIndex]]
-            alignIndex += 1
-            # break
+    def __wavfile2np(self, wav_file):
+        y, _ = librosa.load(wav_file, sr)
+        print('>>>>>>>>>>>>>>>>>>>>>>>> y.shape: ', y.shape)
+        S2 = librosa.hybrid_cqt(y,fmin=librosa.midi_to_hz(min_midi), sr=sr, hop_length=hop_length,
+                        bins_per_octave=bins_per_octave, n_bins=n_bins, filter_scale=1)
+        print('----------', end='>')
+        S3 = librosa.hybrid_cqt(y,fmin=librosa.midi_to_hz(min_midi), sr=sr, hop_length=hop_length,
+                        bins_per_octave=bins_per_octave, n_bins=n_bins, filter_scale=2)
+        print('----------', end='>')
+        S1 = librosa.hybrid_cqt(y,fmin=librosa.midi_to_hz(min_midi), sr=sr, hop_length=hop_length,
+                        bins_per_octave=bins_per_octave, n_bins=n_bins, filter_scale=0.5)
+        print('----------')
+        # print('>>>>>>>>>>>>>>>>>>>>> S.shape: ', S2.shape)
+
+        S1 = self.__s_process(S1)
+        S2 = self.__s_process(S2)
+        S3 = self.__s_process(S3)
+
+        S = np.array([S1, S2, S3])
+        # print('>>>>>>>>>>>>>>>>>>>>> S.shape: ', S.shape)
+        S = S.transpose(1, 2, 0)
+        print('>>>>>>>>>>>>>>>>>>>>>>>> S.shape: ', S.shape)
+        # print(np.min(S2), np.max(S2), np.mean(S2))
+
+        windows = []
+        for i in range(0, S.shape[0] - self.__window_size + 1, self.__step):
+            w = S[i:i + self.__window_size, :]
+            windows.append(w)
+
+        # print inputs
+        x = np.array(windows)
+        # print(x.shape)
+        # print(x[0].shape)
+        return x
+
+    def __s_process(self, s):
+        s = np.abs(s.T)
+        minDB = np.min(s)
+        s = np.pad(s, ((self.__window_size//2, self.__window_size//2), (0, 0)), 'constant', constant_values=minDB)
+        return s
             
         
     def __get_file(self):
