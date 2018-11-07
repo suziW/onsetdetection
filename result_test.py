@@ -178,7 +178,7 @@ if __name__=='__main__':
     input_dir = 'data/maps/test/*/'
     # model_dir = 'model/data3-deep/'
     # meta_name = '0.15781736292916795-4.0-36400.meta'
-    model_dir = 'model/'
+    model_dir = 'model/data3-lstm/'
     meta_name = '0.06811202931645755-28.0-101920.meta'
 
     i = 0
