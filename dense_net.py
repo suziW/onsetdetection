@@ -99,7 +99,7 @@ class Model_dense:
             x = tf.reshape(self.X, shape=[-1, 1, self.window_size, 1])
             # x = tf.transpose(x, perm=[0, 1, 3, 2]) # (batch_size, 1, 440, 3)
 
-            x = conv_layer(x, filter=2 * self.filters, kernel=[1,22], stride=2, layer_name='conv0')
+            x = conv_layer(x, filter=2 * self.filters, kernel=[1,110], stride=2, layer_name='conv0')
             print(x)
             x = Max_Pooling(x, pool_size=[1,2], stride=2)   # windowsize/4 = 110
             print(x)

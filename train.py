@@ -20,17 +20,17 @@ batch_size = 64
 keep_prob = 1
 print_step = 1000
 early_stop = {'best_accuracy': 0.0, 'tolerance': 4, 'not_improve_cnt':0}
-model_save_path = 'savers2'
+model_save_path = 'savers'
 
-data = InputGen(batch_size=batch_size, split=0.8, thread_num=5)
+data = InputGen(batch_size=batch_size, split=0.99, thread_num=5)
 step_per_epoch = data.train_steps()
 num_steps = epochs*step_per_epoch
 print('>>>>>>>>>>>>>>>>>> train/val:len/steps: ', data.get_param())
 ########################################################################################################################################################################################
 ########################################################################################################################################################################################
 
-model = Model_deep(window_size)
-logits = model.deep_net()
+model = Model_dense(window_size)
+logits = model.dense_net()
 
 with tf.name_scope('optimize_scope'):
     loss_op = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=model.label, logits=logits))
